@@ -11,9 +11,9 @@ Before implementing any feature, read:
 1. `docs/development-guide.md`
 2. The appropriate `docs/memberX.md`
 3. The relevant domain documentation:
-   - `docs/business-logic.md`
-   - `docs/domain-model.md`
-   - `docs/booking-workflow.md`
+   - `docs/business_logic.md`
+   - `docs/domain_model.md`
+   - `docs/booking_workflow.md`
    - `docs/architecture.md`
 
 The member-specific document defines the responsibility and boundaries of that member's work.
