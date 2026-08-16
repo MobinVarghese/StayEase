@@ -136,6 +136,7 @@ The initial booking states are:
 
 PENDING
 APPROVED
+PAYMENT PENDING
 REJECTED
 CONFIRMED
 
