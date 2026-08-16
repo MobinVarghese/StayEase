@@ -258,5 +258,6 @@ When changing Django models:
 
 Example:
 
-```bash
+~~~bash
 python manage.py makemigrations
+~~~
