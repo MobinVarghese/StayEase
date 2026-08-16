@@ -8,7 +8,7 @@ Every team member and every coding agent working on StayEase must follow these g
 
 Before implementing any feature, read:
 
-1. `docs/development-guide.md`
+1. `docs/development_guide.md`
 2. The appropriate `docs/memberX.md`
 3. The relevant domain documentation:
    - `docs/business_logic.md`
