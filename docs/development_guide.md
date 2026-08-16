@@ -20,7 +20,7 @@ The member-specific document defines the responsibility and boundaries of that m
 
 ---
 
-# 2. Project Overview
+## 2. Project Overview
 
 StayEase is a web-based PG accommodation discovery and booking platform.
 
