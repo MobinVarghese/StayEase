@@ -50,7 +50,7 @@ Booking Confirmed
 
 ---
 
-# 3. Technology Stack
+## 3. Technology Stack
 
 The current project uses:
 
