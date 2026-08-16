@@ -145,6 +145,8 @@ Possible flow:
 PENDING
    ├── APPROVED
    │      ↓
+   │  PAYMENT PENDING
+   │      ↓
    │   CONFIRMED
    │
    └── REJECTED
