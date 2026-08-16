@@ -66,7 +66,7 @@ A room belongs to exactly one PG.
 
 Relationship:
 
-PG 1 ──────── N Room
+PG 1 ──────── N Rooms
 
 A room contains one or more beds.
 
