@@ -1,645 +1,384 @@
-# StayEase — Member 2
+StayEase — Member 2 Development Specification
 
-## Role
+Role
 
-PG / Property Management — PG, Room & Bed Management
+You are Member 2 — Property Inventory Owner.
 
----
-
-# 1. Purpose
-
-Member 2 is responsible for the complete property-management domain of StayEase.
-
-This module allows PG owners to create and manage the accommodation properties they list on StayEase.
-
-The property hierarchy is:
+You own the complete accommodation inventory domain:
 
 Owner
-  ↓
-PG
-  ↓
-Room
-  ↓
-Bed
+  └── PG
+       └── Room
+            └── Bed
 
-The Bed is the lowest-level accommodation unit and is the unit that tenants ultimately request for booking.
+This is the source of truth for accommodation structure and bed inventory.
 
-Member 2 is responsible for making this hierarchy available to the rest of the application through properly designed Django models, views, forms, templates, validation, authorization, and tests.
+Primary Ownership
 
----
+You own:
 
-# 2. Required Documentation
+PG model
 
-Before making any code changes, read:
+Room model
 
-1. `docs/development-guide.md`
-2. `docs/member2.md`
-3. `docs/architecture.md`
-4. `docs/business-logic.md`
-5. `docs/domain-model.md`
-6. `docs/team-contribution.md`
+Bed model
 
-Also read:
+Owner property dashboard
 
-7. `docs/booking-workflow.md`
+PG CRUD
 
-The booking workflow is important because the Bed entity is used by the booking system.
+Room CRUD
 
----
+Bed CRUD
 
-# 3. Primary Responsibility
+Inventory validation
 
-Member 2 owns:
+Owner-to-property relationships
 
-- PG model and property-management logic.
-- PG creation.
-- PG editing.
-- PG viewing.
-- PG management by owners.
-- Room model and management.
-- Bed model and management.
-- Owner property dashboard.
-- Property ownership authorization.
-- Property-management forms.
-- Property-management templates.
-- Property-management tests.
+Availability-related inventory fields
 
-Member 2 does NOT own authentication itself.
+Tests and migrations for this domain
 
-Authentication and the core User system belong to Member 1.
+Dependencies
 
----
+You depend on:
 
-# 4. Domain Hierarchy
+Member 1 for authentication and owner authorization.
 
-The domain hierarchy must remain:
+Members depending on you:
 
-Owner
-  ↓
-PG
-  ↓
-Room
-  ↓
-Bed
+Member 3 uses PG/Room/Bed data for discovery.
 
-This means:
+Member 4 uses beds and their availability for booking.
 
-- A PG belongs to an Owner.
-- A Room belongs to a PG.
-- A Bed belongs to a Room.
+Member 5 may use property/booking relationships for administrative workflows.
 
-Do not create duplicate ownership relationships unless explicitly approved by the team.
-
----
-
-# 5. PG Entity
-
-A PG represents a physical paying-guest accommodation property listed on StayEase.
-
-A PG must have an owner.
+Domain Model
 
 Conceptually:
 
-Owner 1 ─────── N PGs
+User
+  │
+  └── Owner
+       │
+       └── PG
+            │
+            └── Room
+                 │
+                 └── Bed
 
-One owner may manage multiple PG properties.
+A PG belongs to an owner.
 
-Example:
+A room belongs to a PG.
 
-Owner: Rahul
+A bed belongs to a room.
 
-    Green View PG
-    Sunrise Residency
-    City Stay PG
+The database relationships must enforce these ownership boundaries.
 
-Each PG must remain associated with the owner who manages it.
+PG Responsibilities
 
----
-
-# 6. PG Information
-
-The PG should contain the information agreed upon in the domain model.
-
-Potential information includes:
-
-- PG name.
-- Description.
-- Address.
-- Location.
-- Contact information.
-- Property status.
-- Other approved property information.
-
-Do not introduce unnecessary fields simply because they may be useful.
-
-If a new business requirement requires a new field, discuss it with Member 1 before changing the shared domain model.
-
----
-
-# 7. PG Creation
-
-An authenticated Owner should be able to create a PG.
-
-Expected flow:
+A PG should contain the information necessary for discovery and booking, such as:
 
 Owner
-  ↓
+
+Name
+
+Description
+
+Address/location information
+
+Pricing information where applicable
+
+Amenities
+
+Images/media references if included by the project
+
+Active/listing status
+
+Timestamps
+
+Do not add arbitrary fields merely because they might be useful later.
+
+Room Responsibilities
+
+A room belongs to exactly one PG.
+
+Room information may include:
+
+Room number/name
+
+Capacity
+
+Room type
+
+Pricing where the design requires it
+
+Status/active state
+
+Description if required
+
+Validate that room capacity and bed inventory remain logically consistent.
+
+Bed Responsibilities
+
+A bed belongs to exactly one room.
+
+A bed should have:
+
+Identifier/label
+
+Status/availability information appropriate to the booking model
+
+Active state if needed
+
+The exact booking ownership/state must remain compatible with Member 4's concurrency-safe booking implementation.
+
+Do not implement a second competing booking state machine.
+
 Owner Dashboard
-  ↓
-Create PG
-  ↓
-Enter PG information
-  ↓
-Validate input
-  ↓
-Create PG
-  ↓
-PG belongs to authenticated Owner
 
-The owner relationship must be assigned by the backend.
+Provide owner-facing workflows for:
 
-Do not allow the client to choose another user's ID and become the owner of the PG.
-
----
-
-# 8. PG Management
-
-An Owner should be able to manage their own PGs.
-
-Required functionality:
-
-- List own PGs.
-- View PG details.
-- Create PG.
-- Edit PG.
-- Deactivate/remove PG where supported by the agreed business rules.
-
-Example:
-
-Owner A owns:
-
-Green View PG
-
-Owner A can:
-
-- View it.
-- Edit it.
-- Manage its rooms.
-- Manage its beds.
-
-Owner B cannot modify it.
-
----
-
-# 9. Ownership Authorization
-
-Ownership authorization is a critical requirement.
-
-Never rely only on the UI.
-
-For example, hiding:
-
-ext
-[Edit PG]
-
-from Owner B is not sufficient.
-
-The backend must reject an unauthorized request.
-
-Conceptually:
-
-Authenticated User
-       ↓
-Is this user the PG owner?
-       ↓
-      YES → allow
-       ↓
-       NO → deny
-
-The same principle applies to:
-
-PGs.
-Rooms.
-Beds.
-
-An owner must only manage resources belonging to their own PG.
-
-10. Room Entity
-
-A Room represents an individual room inside a PG.
-
-Relationship:
-
-PG 1 ─────── N Rooms
-
-A Room must belong to exactly one PG.
-
-Example:
-
-Green View PG
-
-Room 101
-Room 102
-Room 203
-
-A room should not exist independently of a PG.
-
-11. Room Information
-
-The exact fields must follow domain-model.md.
-
-Potential fields include:
-
-Room number.
-Room type.
-Capacity.
-Rent.
-Description.
-Status.
-
-Do not add major fields without discussing them with the team.
-
-12. Room Management
-
-An Owner should be able to:
-
-Add a room to their PG.
-View rooms in their PG.
-Edit a room.
-Deactivate/remove a room where appropriate.
-
-Expected flow:
-
-Owner
-↓
-My PG
-↓
-Manage Rooms
-↓
-Add Room
-↓
-Room belongs to selected PG
-
-The backend must verify that the selected PG belongs to the authenticated owner.
-
-13. Bed Entity
-
-A Bed represents an individually bookable accommodation unit.
-
-Relationship:
-
-Room 1 ─────── N Beds
-
-Example:
-
-Room 203
-
-Bed A
-Bed B
-Bed C
-
-The Bed is important because the booking system works at the bed level.
-
-The booking module owned by Member 4 will eventually reference this Bed.
-
-14. Bed Management
-
-An Owner should be able to:
-
-Add a bed to a room.
-View beds.
-Edit bed information.
-Manage bed availability according to the approved domain model.
-
-Expected hierarchy:
-
-Owner
-↓
 PG
-↓
+
+Create
+
+View
+
+Update
+
+Delete/deactivate
+
 Room
-↓
+
+Add
+
+View
+
+Update
+
+Delete/deactivate
+
 Bed
 
-The backend must verify the complete ownership chain.
+Add
 
-For example:
+View
 
-Owner A
-↓
-Green View PG
-↓
-Room 203
-↓
-Bed B
+Update
 
-Owner B must not be able to modify Bed B.
+Delete/deactivate
 
-15. Bed Availability
+The UI should make the hierarchy obvious.
 
-The property-management module may maintain the property/bed information required to determine availability.
+Example:
 
-However, Member 2 must NOT implement booking availability logic independently.
-
-The booking system owned by Member 4 is responsible for authoritative booking validation and concurrency.
-
-Important distinction:
-
-Member 2:
-
-Manages the bed.
-Provides bed information.
-Provides property-level availability information where required.
-
-Member 4:
-
-Determines whether the bed can actually be booked.
-Handles booking conflicts.
-Handles concurrent requests.
-
-Do not duplicate booking logic inside Member 2's module.
-
-16. Owner Dashboard
-
-Create the owner-side property management experience.
-
-Conceptual workflow:
-
-Owner Login
-↓
-Owner Dashboard
-↓
 My PGs
-↓
-Select PG
-↓
-Manage Rooms
-↓
-Manage Beds
+  └── Green Valley PG
+       ├── Room 101
+       │    ├── Bed A
+       │    ├── Bed B
+       │    └── Bed C
+       └── Room 102
+            ├── Bed A
+            └── Bed B
 
-The dashboard should make it clear which PGs belong to the authenticated owner.
+Authorization
 
-17. Property Visibility
+This is mandatory.
 
-The project needs to distinguish between property management and tenant discovery.
+Owner A must not be able to:
 
-Member 2 owns property creation and management.
+Edit Owner B's PG
 
-Member 3 owns the tenant-facing discovery/search experience.
+Delete Owner B's room
 
-Therefore:
+Modify Owner B's bed
 
-Member 2:
+View private management data belonging to Owner B
 
-Creates and maintains PG data.
+Do not trust IDs supplied by the browser.
 
-Member 3:
+Always derive ownership from the authenticated user.
 
-Displays/searches PG data for tenants.
+Availability Boundary
 
-Do not duplicate the tenant search system inside the property-management module.
+You own inventory-level availability data.
 
-18. Dependencies
-Depends on Member 1
+You do NOT own the final booking decision.
 
-Member 2 depends on:
+Member 4 owns:
 
-User model.
-Authentication.
-Owner role.
-Authorization.
+Booking records
 
-Do not create a separate user/owner authentication system.
+Booking state transitions
 
-Used by Member 3
+Transactional reservation
 
-Member 3 depends on:
+Concurrency
 
-PG.
-Room.
-Bed.
+Coordinate with Member 4 before changing fields that affect booking behavior.
 
-Therefore property models must provide clean relationships for tenant-facing discovery.
+Database Requirements
 
-Used by Member 4
+Use proper:
 
-Member 4 depends on:
+Foreign keys
 
-PG.
-Room.
-Bed.
+Constraints
 
-The booking relationship will eventually be:
+Indexes where justified
 
-Tenant
-↓
-Booking
-↓
-Bed
-↓
-Room
-↓
+Timestamps
+
+Nullability rules
+
+Unique constraints where appropriate
+
+Think about database integrity rather than relying exclusively on form validation.
+
+Validation
+
+Validate:
+
+Required fields
+
+Capacity
+
+Invalid negative/zero values
+
+Invalid ownership relationships
+
+Duplicate room identifiers where the domain requires uniqueness
+
+Invalid bed relationships
+
+Deletion/deactivation rules
+
+Migrations
+
+You own migrations for:
+
 PG
-↓
-Owner
 
-Do not make breaking changes to these relationships without coordinating with Member 4 and Member 1.
+Room
 
-19. Database Changes
+Bed
 
-If PG, Room, or Bed models are created or modified:
+Keep migrations small and reviewable.
 
-Run:
+Do not casually edit old migrations that may already have been applied by other developers.
 
-python manage.py makemigrations
+If a migration conflicts with another member's migration, coordinate rather than forcing a merge.
 
-Review the generated migration.
-
-Then test:
-
-python manage.py migrate
-
-Migration files must be committed to Git.
-
-Do not modify an already merged migration.
-
-Create a new migration for subsequent schema changes.
-
-20. Forms and Validation
-
-Forms must validate user input.
-
-Examples:
-
-Required PG fields must be present.
-Room information must be valid.
-Bed identifiers must be valid according to the agreed rules.
-Invalid data should produce useful validation errors.
-
-Do not rely only on HTML/browser validation.
-
-Important business validation must occur on the server.
-
-21. Views
-
-Views should:
-
-Authenticate users where required.
-Verify ownership.
-Validate input.
-Call the appropriate business logic.
-Return appropriate responses/templates.
-
-Do not put large amounts of unrelated business logic directly into templates.
-
-22. Templates
-
-Use the existing Django template architecture.
-
-Follow existing project conventions.
-
-Use:
-
-Template inheritance.
-Reusable templates/components where appropriate.
-Existing static assets.
-Existing styling conventions.
-
-Do not introduce React or another frontend framework.
-
-23. Testing Requirements
-
-Member 2 must create automated tests for the property-management functionality.
-
-PG tests
+Testing Requirements
 
 Test:
 
-Owner can create a PG.
-PG is associated with the authenticated owner.
-Owner can view their PG.
-Owner can edit their PG.
-Owner cannot edit another owner's PG.
-Unauthorized users cannot access owner-only functionality.
-Room tests
+PG creation
 
-Test:
+PG update
 
-Owner can create a room.
-Room belongs to the correct PG.
-Owner can edit their room.
-Owner cannot modify a room belonging to another owner.
-Room cannot be associated incorrectly.
-Bed tests
+PG deletion/deactivation
 
-Test:
+Room creation
 
-Owner can create a bed.
-Bed belongs to the correct room.
-Owner can edit their bed.
-Owner cannot modify another owner's bed.
-Invalid relationships are rejected.
-24. Security Requirements
+Bed creation
 
-Never trust IDs supplied by the client.
+Relationship integrity
 
-For example, do not assume:
+Owner isolation
 
-/pg/123/edit/
+Invalid values
 
-is safe simply because the user is authenticated.
+Duplicate constraints
 
-The backend must verify:
+Authentication requirements
 
-Current User
-     ↓
-Owns PG 123?
-     ↓
-YES → allow
-NO → deny
+Unauthorized access
 
-The same applies to nested resources:
+Cascading/protected deletion behavior as designed
 
-/pg/123/room/45/bed/2/
+Important security test:
 
-Verify the complete ownership relationship.
+Owner A requests Owner B's PG
+        ↓
+Request must be rejected
 
-25. Agent Instructions
+Scope Boundaries
 
-If using a coding agent, start with:
+Do NOT implement
 
-I am Member 2 of the StayEase project. Read docs/development-guide.md and docs/member2.md before making any changes.
+Authentication
 
-Then instruct the agent to:
+Search engine/filter UI
 
-Inspect the existing repository.
-Inspect the existing User model and authentication implementation.
-Inspect existing PG, Room, and Bed code if present.
-Inspect existing migrations.
-Understand the existing architecture before modifying it.
-Implement only Member 2's responsibilities.
-Follow the domain relationships defined by domain-model.md.
-Enforce ownership authorization on the backend.
-Add automated tests.
-Create migrations when necessary.
-Run relevant tests.
-Report all changed files.
-Report migrations created.
-Report any dependencies on other members.
-Do not redesign authentication, search, booking, notifications, or payment.
-26. What the Agent Must NOT Do
+Booking state machine
 
-The agent must not independently:
+Booking concurrency
 
-Replace the User model.
-Replace authentication.
-Implement search.
-Implement booking approval.
-Implement booking concurrency.
-Implement notifications.
-Implement payment.
-Introduce React.
-Introduce a REST API.
-Add unnecessary dependencies.
-Change the overall architecture.
-Modify another member's module unnecessarily.
-27. Expected User Workflow
+Dummy payment
 
-The completed property-management module should support:
+Notification system
 
-Owner
-  ↓
-Login
-  ↓
-Owner Dashboard
-  ↓
-My PGs
-  ↓
-Create PG
-  ↓
-View PG
-  ↓
-Manage Rooms
-  ↓
-Create Room
-  ↓
-Manage Beds
-  ↓
-Create Bed
-28. Definition of Done
+Admin workflows
 
-Member 2's module is ready for integration when:
+You may expose the domain data required by those modules, but do not own their business logic.
 
-PG management works.
-Room management works.
-Bed management works.
-Ownership authorization works.
-Unauthorized access is rejected.
-Models follow the approved domain model.
-Required migrations are created.
-Automated tests are present.
-Tests pass.
-The module works inside Docker Compose.
-Property data is usable by Member 3's search module.
-Bed data is usable by Member 4's booking module.
-No unrelated functionality has been introduced.
+Integration Contract
+
+Member 3 should be able to query:
+
+PG → Rooms → Beds
+
+Member 4 should be able to identify a specific bed and safely perform booking operations.
+
+Do not force other members to depend on owner-dashboard HTML or internal implementation details.
+
+Agent Instructions
+
+Read Member 1's architecture/authentication rules.
+
+Inspect existing models before creating new ones.
+
+Do not duplicate the user model.
+
+Keep PG/Room/Bed ownership centralized.
+
+Never trust URL IDs for authorization.
+
+Keep booking logic out of inventory CRUD.
+
+Add tests with every meaningful behavior.
+
+Coordinate schema changes with Members 3 and 4.
+
+Avoid premature abstraction.
+
+Keep commits focused.
+
+Definition of Done
+
+PG model complete
+
+Room model complete
+
+Bed model complete
+
+Relationships enforced
+
+Owner CRUD complete
+
+Owner authorization complete
+
+Validation complete
+
+Migrations complete
+
+Tests complete
+
+Member 3 can consume inventory data
+
+Member 4 can safely identify bookable beds
+
+No booking/payment/notification logic duplicated
