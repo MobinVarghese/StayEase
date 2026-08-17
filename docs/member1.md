@@ -1,151 +1,375 @@
-# StayEase — Member 1
+StayEase — Member 1 Development Specification
 
-## Role
+Role
 
-Team Leader — Architecture, Authentication & Integration
+You are Member 1 — Architecture, Authentication & Integration Owner.
 
----
+Your responsibility is to build and protect the application's shared foundation. You are not the owner of every feature; your job is to make sure all feature modules can be developed independently while following consistent architecture, authentication, authorization, data contracts, error handling, testing, and integration rules.
 
-## 1. Purpose
+Primary Ownership
 
-Member 1 is responsible for the shared technical foundation of StayEase and for coordinating the integration of all modules.
+You own:
 
-Member 1 owns authentication, authorization, project architecture, integration, code review, and overall technical coordination.
+Project architecture and shared conventions
 
-Member 1 should understand the complete application even though other members own individual modules.
+User authentication
 
----
+User roles and authorization foundation
 
-## 2. Required Reading
+Shared application configuration
 
-Before starting any implementation, read:
+Common utilities/services where genuinely cross-cutting
 
-- `docs/development-guide.md`
-- `docs/architecture.md`
-- `docs/business-logic.md`
-- `docs/domain-model.md`
-- `docs/team-contribution.md`
+Integration contracts between members
 
-For booking-related work, also read:
+Cross-module integration
 
-- `docs/booking-workflow.md`
+Repository-level development standards
 
----
+CI/test integration support
 
-## 3. Primary Responsibilities
+Final architectural consistency
 
-Member 1 owns:
+Project Context
 
-- Authentication
-- User roles
-- Authorization
-- Shared user model decisions
-- Project architecture
-- Cross-module integration
-- Code review
-- Git workflow coordination
-- CI coordination
-- Deployment preparation
+StayEase is a PG/room/bed discovery and booking platform.
 
----
+Primary roles:
 
-# 4. User System
+Tenant
 
-The application has three roles:
+Owner
 
-- Tenant
-- Owner
-- Admin
+Admin
 
-The authentication system must establish the identity of the currently authenticated user.
+Accommodation hierarchy:
 
-Other modules depend on this identity.
+Owner
+  └── PG
+       └── Room
+            └── Bed
 
----
+Booking lifecycle:
 
-## 5. Authorization
+PENDING
+   ├──> REJECTED
+   └──> APPROVED
+          └──> PAYMENT_PENDING
+                  └──> CONFIRMED
 
-Access must be controlled at the backend level.
+The project is a Django application using PostgreSQL, Docker, uv and GitHub/CI.
 
-### Tenant
+Dependencies
 
-Can:
+You depend on:
 
-- Browse PGs.
-- View available rooms and beds.
-- Request bookings.
-- View their own bookings.
-- View their own notifications.
-- Complete dummy payment for approved bookings.
+Project requirements and agreed architecture.
 
-Cannot:
+Other members depend on you for:
 
-- Manage PGs.
-- Approve bookings.
-- Access another user's private information.
-- Access admin-only functionality.
+User identity
 
-### Owner
+Role checks
 
-Can:
+Authentication
 
-- Manage their own PGs.
-- Manage rooms and beds belonging to their PGs.
-- View booking requests for their PGs.
-- Approve or reject relevant booking requests.
+Shared conventions
 
-Cannot:
+Stable interfaces
 
-- Modify another owner's PG.
-- Approve unrelated bookings.
-- Access admin-only functionality.
+Integration rules
 
-### Admin
+Member 2 depends on your authentication/authorization foundation for owner access.
 
-Can access platform administration functionality.
+Member 3 depends on tenant identity and shared project conventions.
 
----
+Member 4 depends on authenticated tenant/owner identity and authorization.
 
-# 6. Authentication Scope
+Member 5 depends on authentication, authorization and the booking contracts.
 
-Implement the project's authentication foundation.
+Exact Responsibilities
 
-Expected functionality:
+1. Establish application architecture
 
-- Registration
-- Login
-- Logout
-- Authentication state
-- Role handling
-- Protected views
+Define:
 
-Use the existing authentication capabilities provided by the project where appropriate instead of unnecessarily replacing them.
+Django app/module boundaries
 
----
+Naming conventions
 
-# 7. Authorization and Ownership
+Model ownership
 
-Authorization must be enforced by the backend.
+Service-layer conventions
 
-For example:
+URL conventions
 
-Owner A owns:
+Template conventions
 
-Green View PG
+Test conventions
 
-Owner B must not be able to access a backend operation that modifies Green View PG simply by changing an ID in the URL.
+Configuration conventions
 
-Ownership must be checked through the authenticated user.
+Environment-variable handling
 
----
+Do not create a monolithic app simply because integration is easier.
 
-# 8. Architecture Responsibility
+Each domain should have a clear owner.
 
-Maintain the agreed architecture:
+2. Authentication
 
-```text
-Browser
-   ↓
-Django
-   ↓
-PostgreSQL
+Implement:
+
+Registration
+
+Login
+
+Logout
+
+Password handling using Django's secure authentication mechanisms
+
+Session management
+
+Authentication-required routes
+
+Appropriate redirect behavior
+
+Basic account/profile identity required by the rest of the system
+
+Never store plaintext passwords.
+
+Do not create a second authentication system inside another member's module.
+
+3. Role-based authorization
+
+The system must distinguish:
+
+TENANT
+OWNER
+ADMIN
+
+Authorization must be enforced server-side.
+
+A tenant must not access owner management endpoints.
+
+An owner must not manage another owner's PG.
+
+A normal user must not access admin functionality.
+
+Do not rely on hiding buttons in HTML as authorization.
+
+4. Shared ownership rules
+
+Provide a consistent way for domain modules to answer questions such as:
+
+Is the current user authenticated?
+Is the current user an owner?
+Does this PG belong to this owner?
+Is this user an admin?
+
+Prefer reusable decorators, mixins, permissions or service-level checks rather than duplicating slightly different logic across modules.
+
+5. Shared error-handling conventions
+
+Establish consistent behavior for:
+
+Unauthorized access
+
+Forbidden access
+
+Missing resources
+
+Invalid form data
+
+Invalid state transitions
+
+Do not allow different modules to invent incompatible response behavior.
+
+6. Integration ownership
+
+You are responsible for integrating the team's branches/features.
+
+Integration does not mean rewriting another member's domain logic without discussion.
+
+Before merging:
+
+Run tests
+
+Check migrations
+
+Check URL collisions
+
+Check template collisions
+
+Check model dependencies
+
+Check authorization
+
+Check imports
+
+Check environment configuration
+
+7. Documentation
+
+Maintain or update:
+
+Architecture documentation
+
+Domain ownership
+
+Shared conventions
+
+Integration notes
+
+Setup instructions where needed
+
+Scope Boundaries
+
+You MAY modify
+
+Project configuration
+
+Authentication module
+
+Shared user/role foundation
+
+Shared utilities
+
+Shared templates/layouts
+
+Root URL configuration
+
+CI configuration where necessary
+
+Documentation
+
+Integration wiring
+
+You SHOULD NOT own
+
+PG CRUD
+
+Room CRUD
+
+Bed CRUD
+
+Search/filter implementation
+
+Booking business logic
+
+Booking concurrency logic
+
+Dummy payment implementation
+
+Notification business logic
+
+Admin-specific domain workflows
+
+Those belong to other members.
+
+Required Engineering Principles
+
+Single source of truth
+
+Do not duplicate user roles or booking state definitions.
+
+Server-side security
+
+Every sensitive operation must be authorized on the server.
+
+Explicit boundaries
+
+A module should expose a clear interface rather than allowing other modules to reach into its internals.
+
+Small commits
+
+Prefer focused commits such as:
+
+feat(auth): add owner registration
+fix(auth): prevent unauthorized owner dashboard access
+test(auth): cover role authorization
+
+Avoid giant commits containing unrelated changes.
+
+Testing Requirements
+
+You must provide tests for:
+
+Registration
+
+Login
+
+Logout
+
+Invalid credentials
+
+Authentication-required routes
+
+Tenant authorization
+
+Owner authorization
+
+Admin authorization
+
+Cross-owner access prevention
+
+Unauthorized access
+
+Role assignment rules
+
+Also verify that the authentication foundation does not break other modules.
+
+Integration Checklist
+
+Before declaring your work complete:
+
+Authentication works
+
+Roles are represented consistently
+
+Server-side authorization exists
+
+Cross-owner access is prevented
+
+Shared conventions are documented
+
+Tests pass
+
+No plaintext passwords exist
+
+Environment secrets are not committed
+
+Root URLs are coherent
+
+Other members can integrate without duplicating authentication
+
+CI passes
+
+Agent Instructions
+
+If an AI coding agent is assigned this document:
+
+Read the repository before modifying it.
+
+Identify existing Django apps and conventions.
+
+Do not replace existing working architecture unnecessarily.
+
+Search before creating duplicate utilities/models.
+
+Respect ownership boundaries.
+
+Do not implement another member's feature merely because it is convenient.
+
+Write tests with the feature.
+
+Keep migrations deterministic.
+
+Never commit secrets.
+
+Explain architectural changes in the PR.
+
+If another member's code is required, define the dependency rather than silently taking ownership.
+
+Definition of Done
+
+Member 1 is complete when the team has a stable authentication and authorization foundation, documented architecture, consistent cross-module conventions, passing tests, and a clean integration path for Members 2–5.
