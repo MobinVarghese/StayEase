@@ -73,7 +73,7 @@ Do not introduce React or a separate REST API unless the team explicitly decides
 
 ---
 
-# 4. Architecture
+## 4. Architecture
 
 The current architecture is:
 
