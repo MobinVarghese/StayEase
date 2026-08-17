@@ -9,7 +9,7 @@ Every team member and every coding agent working on StayEase must follow these g
 Before implementing any feature, read:
 
 1. `docs/development_guide.md`
-2. The appropriate `docs/memberX.md`
+2. `docs/team_contribution.md`
 3. The relevant domain documentation:
    - `docs/business_logic.md`
    - `docs/domain_model.md`
@@ -73,7 +73,7 @@ Do not introduce React or a separate REST API unless the team explicitly decides
 
 ---
 
-# 4. Architecture
+## 4. Architecture
 
 The current architecture is:
 

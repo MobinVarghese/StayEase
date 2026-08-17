@@ -158,9 +158,13 @@ PENDING → APPROVED
 
 The tenant is notified and can proceed to the dummy payment process.
 
+After approval:
+
+APPROVED → PAYMENT PENDING
+
 After successful dummy payment:
 
-APPROVED → CONFIRMED
+PAYMENT PENDING → CONFIRMED
 
 ---
 
