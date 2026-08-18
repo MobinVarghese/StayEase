@@ -14,11 +14,11 @@ Do not allow local infrastructure problems to unnecessarily block implementation
 
 Before development, inspect the available environment:
 
-```bash
+~~~bash
 docker info
 docker compose version
 uv --version
-````
+~~~
 
 Use the available environment when it is convenient, but do not spend significant time troubleshooting the developer's machine.
 
