@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {% translate "Owner Dashboard" %} | StayEase
+{% endblock title %}
+
+{% block content %}
+  <div class="container py-4">
+    <div class="row mb-4">
+      <div class="col">
+        <h1>{% translate "Owner Dashboard" %}</h1>
+        <p class="text-muted">
+          {% translate "Welcome back," %} {{ request.user.name|default:request.user.email }}.
+          <span class="badge bg-success">{% translate "Owner" %}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Placeholder: My PGs -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{% translate "My Properties" %}</h5>
+            <p class="card-text text-muted">
+              {% translate "Manage your PG properties, rooms, and beds." %}
+            </p>
+            <!-- Member 2 will link to PG list/create views here -->
+            <span class="badge bg-secondary">{% translate "Coming soon" %}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder: Booking Requests -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{% translate "Booking Requests" %}</h5>
+            <p class="card-text text-muted">
+              {% translate "Review and manage tenant booking requests." %}
+            </p>
+            <!-- Member 4 will link to booking management views here -->
+            <span class="badge bg-secondary">{% translate "Coming soon" %}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder: Notifications -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{% translate "Notifications" %}</h5>
+            <p class="card-text text-muted">
+              {% translate "View booking updates and system messages." %}
+            </p>
+            <!-- Member 5 will link to notification views here -->
+            <span class="badge bg-secondary">{% translate "Coming soon" %}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
