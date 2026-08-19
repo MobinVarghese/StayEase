@@ -19,6 +19,7 @@ urlpatterns = [
     path("users/", include("stayease.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
+    path("properties/", include("stayease.properties.urls", namespace="properties")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),

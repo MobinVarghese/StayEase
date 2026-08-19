@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {% translate "Room" %} {{ room.room_number }} | StayEase
+{% endblock title %}
+
+{% block content %}
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_list' %}">{% translate "My Properties" %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_detail' pg.pk %}">{{ pg.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% translate "Room" %} {{ room.room_number }}</li>
+      </ol>
+    </nav>
+
+    {# Room Header #}
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h1>{% translate "Room" %} {{ room.room_number }}</h1>
+        {% if room.room_type %}
+          <span class="badge bg-info text-dark">{{ room.room_type }}</span>
+        {% endif %}
+        <p class="text-muted mt-2">
+          {% translate "Capacity:" %} {{ room.capacity }} |
+          {% translate "Active beds:" %} {{ active_bed_count }} |
+          {% translate "Rent:" %} ₹{{ room.rent }}/{% translate "month" %}
+        </p>
+      </div>
+      <div>
+        <a href="{% url 'properties:room_edit' pg.pk room.pk %}" class="btn btn-outline-secondary btn-sm">
+          {% translate "Edit Room" %}
+        </a>
+        <a href="{% url 'properties:room_delete' pg.pk room.pk %}" class="btn btn-outline-danger btn-sm ms-1">
+          {% translate "Delete" %}
+        </a>
+      </div>
+    </div>
+
+    {% if room.description %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <p class="card-text">{{ room.description }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Beds Section #}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>{% translate "Beds" %}</h3>
+      {% if active_bed_count < room.capacity %}
+        <a href="{% url 'properties:bed_create' pg.pk room.pk %}" class="btn btn-primary btn-sm">
+          {% translate "+ Add Bed" %}
+        </a>
+      {% else %}
+        <span class="text-muted">
+          {% translate "Room at full capacity. Update capacity to add more beds." %}
+        </span>
+      {% endif %}
+    </div>
+
+    {% if beds %}
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th>{% translate "Label" %}</th>
+              <th>{% translate "Available" %}</th>
+              <th>{% translate "Status" %}</th>
+              <th>{% translate "Created" %}</th>
+              <th>{% translate "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bed in beds %}
+              <tr {% if not bed.is_active %}class="table-warning"{% endif %}>
+                <td>{{ bed.label }}</td>
+                <td>
+                  {% if bed.is_available %}
+                    <span class="badge bg-success">{% translate "Available" %}</span>
+                  {% else %}
+                    <span class="badge bg-danger">{% translate "Unavailable" %}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if bed.is_active %}
+                    <span class="badge bg-success">{% translate "Active" %}</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">{% translate "Inactive" %}</span>
+                  {% endif %}
+                </td>
+                <td>{{ bed.created_at|date:"d M Y" }}</td>
+                <td>
+                  <a href="{% url 'properties:bed_edit' pg.pk room.pk bed.pk %}"
+                     class="btn btn-sm btn-outline-secondary">{% translate "Edit" %}</a>
+                  <a href="{% url 'properties:bed_delete' pg.pk room.pk bed.pk %}"
+                     class="btn btn-sm btn-outline-danger">{% translate "Delete" %}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted text-center py-3">{% translate "No beds added yet." %}</p>
+    {% endif %}
+  </div>
+{% endblock content %}

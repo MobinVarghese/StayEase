@@ -27,8 +27,9 @@
             <p class="card-text text-muted">
               {% translate "Manage your PG properties, rooms, and beds." %}
             </p>
-            <!-- Member 2 will link to PG list/create views here -->
-            <span class="badge bg-secondary">{% translate "Coming soon" %}</span>
+            <a href="{% url 'properties:pg_list' %}" class="btn btn-primary">
+              {% translate "Manage Properties" %}
+            </a>
           </div>
         </div>
       </div>
