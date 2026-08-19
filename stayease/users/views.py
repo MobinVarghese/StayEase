@@ -56,7 +56,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
         # Role-aware routing.
         if user.is_owner:
             return reverse("users:dashboard_owner")
-        if user.is_admin_user:
+        if user.is_admin_user and user.is_staff:
             return reverse("admin:index")
         # Tenant/default is directed to the tenant dashboard
         return reverse("users:dashboard_tenant")
