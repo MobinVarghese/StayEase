@@ -11,10 +11,13 @@ Model ownership: Member 2 (PG/Room/Bed), Member 4 (Booking)
 
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
-from typing import TYPE_CHECKING, Any
+from decimal import Decimal
+from decimal import InvalidOperation
+from typing import TYPE_CHECKING
+from typing import Any
 
-from django.db.models import Count, Q
+from django.db.models import Count
+from django.db.models import Q
 
 from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
 from stayease.properties.models import PG
@@ -88,7 +91,7 @@ def search_pgs(params: dict[str, Any]) -> QuerySet[PG]:
             Q(name__icontains=keyword)
             | Q(description__icontains=keyword)
             | Q(city__icontains=keyword)
-            | Q(amenities__icontains=keyword)
+            | Q(amenities__icontains=keyword),
         )
 
     # -- City filter ---------------------------------------------------
@@ -186,7 +189,7 @@ def get_distinct_cities() -> list[str]:
         PG.objects.filter(is_active=True)
         .values_list("city", flat=True)
         .distinct()
-        .order_by("city")
+        .order_by("city"),
     )
 
 
@@ -201,8 +204,9 @@ def _to_decimal(value: Any) -> Decimal | None:
         return None
     try:
         d = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    else:
         if d < 0:
             return None
         return d
-    except (InvalidOperation, TypeError, ValueError):
-        return None

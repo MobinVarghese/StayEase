@@ -9,14 +9,13 @@ Business logic ownership: Member 3
 from __future__ import annotations
 
 from django.shortcuts import get_object_or_404
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView
+from django.views.generic import ListView
 
 from stayease.discovery.forms import PGSearchForm
-from stayease.discovery.services import (
-    get_distinct_cities,
-    get_rooms_with_availability,
-    search_pgs,
-)
+from stayease.discovery.services import get_distinct_cities
+from stayease.discovery.services import get_rooms_with_availability
+from stayease.discovery.services import search_pgs
 from stayease.properties.models import PG
 from stayease.users.mixins import TenantRequiredMixin
 
@@ -55,9 +54,9 @@ class PGDiscoveryDetailView(TenantRequiredMixin, DetailView):
     """
     PG detail page showing rooms, beds, and availability.
 
-    Requires TENANT role login. Only active PGs are visible. Rooms and beds are loaded with
-    availability annotations.  Each bookable bed renders a link to
-    ``bookings:booking_create`` (owned by Member 4).
+    Requires TENANT role login. Only active PGs are visible.
+    Rooms and beds are loaded with availability annotations. Each bookable
+    bed renders a link to ``bookings:booking_create`` (owned by Member 4).
     """
 
     model = PG

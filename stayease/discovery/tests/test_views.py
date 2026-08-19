@@ -18,7 +18,9 @@ from django.urls import reverse
 
 from stayease.bookings.models import BookingStatus
 from stayease.bookings.tests.factories import BookingFactory
-from stayease.properties.tests.factories import BedFactory, PGFactory, RoomFactory
+from stayease.properties.tests.factories import BedFactory
+from stayease.properties.tests.factories import PGFactory
+from stayease.properties.tests.factories import RoomFactory
 from stayease.users.models import UserRole
 from stayease.users.tests.factories import UserFactory
 
@@ -73,7 +75,7 @@ class TestPGDiscoveryListView:
     def test_displays_active_pgs(self, client):
         tenant = _tenant()
         _login(client, tenant)
-        pg = PGFactory(is_active=True, name="Test PG Visible")
+        PGFactory(is_active=True, name="Test PG Visible")
         PGFactory(is_active=False, name="Test PG Hidden")
         response = client.get(self.url)
         assert b"Test PG Visible" in response.content
@@ -137,7 +139,7 @@ class TestPGDiscoveryListView:
     def test_pagination_preserves_filters(self, client):
         tenant = _tenant()
         _login(client, tenant)
-        for i in range(15):
+        for _ in range(15):
             PGFactory(city="TestCity")
         response = client.get(self.url, {"city": "TestCity"})
         content = response.content.decode()

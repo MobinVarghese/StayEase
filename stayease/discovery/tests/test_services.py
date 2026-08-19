@@ -17,15 +17,14 @@ import pytest
 
 from stayease.bookings.models import BookingStatus
 from stayease.bookings.tests.factories import BookingFactory
-from stayease.discovery.services import (
-    _to_decimal,
-    get_active_pgs_queryset,
-    get_distinct_cities,
-    get_rooms_with_availability,
-    search_pgs,
-)
-from stayease.properties.tests.factories import BedFactory, PGFactory, RoomFactory
-
+from stayease.discovery.services import _to_decimal
+from stayease.discovery.services import get_active_pgs_queryset
+from stayease.discovery.services import get_distinct_cities
+from stayease.discovery.services import get_rooms_with_availability
+from stayease.discovery.services import search_pgs
+from stayease.properties.tests.factories import BedFactory
+from stayease.properties.tests.factories import PGFactory
+from stayease.properties.tests.factories import RoomFactory
 
 # ======================================================================
 # get_active_pgs_queryset
@@ -225,11 +224,11 @@ class TestGetRoomsWithAvailability:
     def test_returns_rooms_with_beds(self):
         pg = PGFactory()
         room = RoomFactory(pg=pg, capacity=2)
-        bed1 = BedFactory(room=room, is_available=True, is_active=True)
-        bed2 = BedFactory(room=room, is_available=False, is_active=True)
+        BedFactory(room=room, is_available=True, is_active=True)
+        BedFactory(room=room, is_available=False, is_active=True)
         # Prefetch for the service to work
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert len(result) == 1
@@ -244,7 +243,7 @@ class TestGetRoomsWithAvailability:
         bed = BedFactory(room=room, is_available=True, is_active=True)
         BookingFactory(bed=bed, status=BookingStatus.CONFIRMED)
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert result[0]["beds"][0]["is_bookable"] is False
@@ -256,7 +255,7 @@ class TestGetRoomsWithAvailability:
         bed = BedFactory(room=room, is_available=True, is_active=True)
         BookingFactory(bed=bed, status=BookingStatus.REJECTED)
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert result[0]["beds"][0]["is_bookable"] is True
@@ -266,7 +265,7 @@ class TestGetRoomsWithAvailability:
         RoomFactory(pg=pg, capacity=1, is_active=True)
         RoomFactory(pg=pg, capacity=1, is_active=False)
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert len(result) == 1
@@ -277,7 +276,7 @@ class TestGetRoomsWithAvailability:
         BedFactory(room=room, is_active=True, is_available=True)
         BedFactory(room=room, is_active=False, is_available=True)
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert result[0]["total_active_count"] == 1
@@ -285,7 +284,7 @@ class TestGetRoomsWithAvailability:
     def test_empty_pg(self):
         pg = PGFactory()
         pg = pg.__class__.objects.prefetch_related(
-            "rooms__beds__bookings"
+            "rooms__beds__bookings",
         ).get(pk=pg.pk)
         result = get_rooms_with_availability(pg)
         assert result == []

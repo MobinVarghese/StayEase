@@ -25,7 +25,7 @@ class PGSearchForm(forms.Form):
                 "placeholder": _("Search by name, description, city, or amenities…"),
                 "class": "form-control",
                 "id": "id_search_q",
-            }
+            },
         ),
     )
     city = forms.CharField(
@@ -35,7 +35,7 @@ class PGSearchForm(forms.Form):
             attrs={
                 "class": "form-select",
                 "id": "id_filter_city",
-            }
+            },
         ),
     )
     min_price = forms.DecimalField(
@@ -47,7 +47,7 @@ class PGSearchForm(forms.Form):
                 "placeholder": _("Min"),
                 "class": "form-control",
                 "id": "id_filter_min_price",
-            }
+            },
         ),
     )
     max_price = forms.DecimalField(
@@ -59,7 +59,7 @@ class PGSearchForm(forms.Form):
                 "placeholder": _("Max"),
                 "class": "form-control",
                 "id": "id_filter_max_price",
-            }
+            },
         ),
     )
     available_only = forms.BooleanField(
@@ -69,7 +69,7 @@ class PGSearchForm(forms.Form):
             attrs={
                 "class": "form-check-input",
                 "id": "id_filter_available_only",
-            }
+            },
         ),
     )
 
