@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ pg.name }} — StayEase{% endblock title %}
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-12">
+    {# Breadcrumb #}
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="{% url 'discovery:pg_list' %}">{% translate "Browse PGs" %}</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ pg.name }}</li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+{# ── PG Information ───────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h1 class="card-title">{{ pg.name }}</h1>
+    <h5 class="text-muted mb-3">
+      <i class="bi bi-geo-alt-fill"></i> {{ pg.city }}
+    </h5>
+
+    {% if pg.description %}
+      <p class="card-text">{{ pg.description }}</p>
+    {% endif %}
+
+    <div class="row mt-3">
+      <div class="col-md-4">
+        <p class="mb-1"><strong>{% translate "Address" %}</strong></p>
+        <p class="text-muted">{{ pg.address }}</p>
+      </div>
+      <div class="col-md-4">
+        <p class="mb-1"><strong>{% translate "Rent (from)" %}</strong></p>
+        <p class="text-muted">₹{{ pg.rent_per_month }}/{% translate "month" %}</p>
+      </div>
+      <div class="col-md-4">
+        {% if pg.amenities %}
+          <p class="mb-1"><strong>{% translate "Amenities" %}</strong></p>
+          <p class="text-muted">{{ pg.amenities }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Rooms & Beds ─────────────────────────────────────────────────── #}
+<h2 class="mb-3">{% translate "Rooms & Availability" %}</h2>
+
+{% if rooms_data %}
+  <div class="accordion mb-4" id="roomsAccordion">
+    {% for room_info in rooms_data %}
+      <div class="accordion-item" id="room-{{ room_info.room.pk }}">
+        <h2 class="accordion-header" id="heading-room-{{ room_info.room.pk }}">
+          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse-room-{{ room_info.room.pk }}"
+                  aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                  aria-controls="collapse-room-{{ room_info.room.pk }}">
+            <span class="me-3">
+              <strong>{% translate "Room" %} {{ room_info.room.room_number }}</strong>
+              {% if room_info.room.room_type %}
+                <small class="text-muted">({{ room_info.room.room_type }})</small>
+              {% endif %}
+            </span>
+            <span class="badge bg-info me-2">₹{{ room_info.room.rent }}/{% translate "month" %}</span>
+            {% if room_info.available_count > 0 %}
+              <span class="badge bg-success">
+                {{ room_info.available_count }}/{{ room_info.total_active_count }}
+                {% translate "beds available" %}
+              </span>
+            {% else %}
+              <span class="badge bg-secondary">
+                {% translate "No beds available" %}
+              </span>
+            {% endif %}
+          </button>
+        </h2>
+        <div id="collapse-room-{{ room_info.room.pk }}"
+             class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+             aria-labelledby="heading-room-{{ room_info.room.pk }}"
+             data-bs-parent="#roomsAccordion">
+          <div class="accordion-body">
+            {% if room_info.room.description %}
+              <p class="text-muted mb-3">{{ room_info.room.description }}</p>
+            {% endif %}
+
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>{% translate "Bed" %}</th>
+                    <th>{% translate "Status" %}</th>
+                    <th>{% translate "Action" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for bed_info in room_info.beds %}
+                    <tr id="bed-row-{{ bed_info.bed.pk }}">
+                      <td>{{ bed_info.bed.label }}</td>
+                      <td>
+                        {% if bed_info.is_bookable %}
+                          <span class="badge bg-success">{% translate "Available" %}</span>
+                        {% else %}
+                          <span class="badge bg-secondary">{% translate "Unavailable" %}</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if bed_info.is_bookable %}
+                          <a href="{% url 'bookings:booking_create' bed_pk=bed_info.bed.pk %}"
+                             class="btn btn-primary btn-sm"
+                             id="btn-book-bed-{{ bed_info.bed.pk }}">
+                            {% translate "Request Booking" %}
+                          </a>
+                        {% else %}
+                          <span class="text-muted small">{% translate "Not available" %}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="3" class="text-muted text-center">
+                        {% translate "No beds configured for this room." %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    {% translate "No rooms are currently available in this PG." %}
+  </div>
+{% endif %}
+
+{# ── Back link ────────────────────────────────────────────────────── #}
+<a href="{% url 'discovery:pg_list' %}" class="btn btn-outline-secondary mb-4">
+  &laquo; {% translate "Back to Listings" %}
+</a>
+{% endblock content %}

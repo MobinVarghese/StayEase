@@ -21,6 +21,7 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     path("properties/", include("stayease.properties.urls", namespace="properties")),
     path("bookings/", include("stayease.bookings.urls", namespace="bookings")),
+    path("discover/", include("stayease.discovery.urls", namespace="discovery")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
