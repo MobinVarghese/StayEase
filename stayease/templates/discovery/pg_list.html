@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Browse PG Accommodations" %} — StayEase{% endblock title %}
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-12">
+    <h1 class="mb-4">{% translate "Browse PG Accommodations" %}</h1>
+  </div>
+</div>
+
+{# ── Search & Filter Bar ──────────────────────────────────────────── #}
+<div class="card mb-4 shadow-sm">
+  <div class="card-body">
+    <form method="get" action="{% url 'discovery:pg_list' %}" id="pg-search-form">
+      <div class="row g-3 align-items-end">
+        {# Keyword search #}
+        <div class="col-md-4">
+          <label for="id_search_q" class="form-label">{{ search_form.q.label }}</label>
+          {{ search_form.q }}
+        </div>
+        {# City filter #}
+        <div class="col-md-2">
+          <label for="id_filter_city" class="form-label">{{ search_form.city.label }}</label>
+          {{ search_form.city }}
+        </div>
+        {# Price range #}
+        <div class="col-md-2">
+          <label for="id_filter_min_price" class="form-label">{{ search_form.min_price.label }}</label>
+          {{ search_form.min_price }}
+        </div>
+        <div class="col-md-2">
+          <label for="id_filter_max_price" class="form-label">{{ search_form.max_price.label }}</label>
+          {{ search_form.max_price }}
+        </div>
+        {# Available only + submit #}
+        <div class="col-md-2">
+          <div class="form-check mb-2">
+            {{ search_form.available_only }}
+            <label class="form-check-label" for="id_filter_available_only">
+              {{ search_form.available_only.label }}
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary w-100" id="btn-search">
+            {% translate "Search" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Results ──────────────────────────────────────────────────────── #}
+{% if pgs %}
+  <p class="text-muted mb-3">
+    {% blocktranslate with count=paginator.count %}
+      {{ count }} PG(s) found.
+    {% endblocktranslate %}
+  </p>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+    {% for pg in pgs %}
+      <div class="col">
+        <div class="card h-100 shadow-sm" id="pg-card-{{ pg.pk }}">
+          <div class="card-body">
+            <h5 class="card-title">
+              <a href="{% url 'discovery:pg_detail' pg_pk=pg.pk %}" class="text-decoration-none">
+                {{ pg.name }}
+              </a>
+            </h5>
+            <h6 class="card-subtitle mb-2 text-muted">
+              <i class="bi bi-geo-alt"></i> {{ pg.city }}
+            </h6>
+            <p class="card-text">
+              {{ pg.description|truncatewords:25 }}
+            </p>
+            <ul class="list-unstyled small">
+              <li>
+                <strong>{% translate "Rent:" %}</strong>
+                ₹{{ pg.rent_per_month }}/{% translate "month" %}
+              </li>
+              {% if pg.amenities %}
+                <li>
+                  <strong>{% translate "Amenities:" %}</strong>
+                  {{ pg.amenities|truncatewords:10 }}
+                </li>
+              {% endif %}
+              <li>
+                <strong>{% translate "Available Beds:" %}</strong>
+                {% if pg.available_bed_count > 0 %}
+                  <span class="badge bg-success">{{ pg.available_bed_count }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">{% translate "None" %}</span>
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+          <div class="card-footer bg-transparent">
+            <a href="{% url 'discovery:pg_detail' pg_pk=pg.pk %}"
+               class="btn btn-outline-primary btn-sm w-100">
+              {% translate "View Details" %}
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Pagination ─────────────────────────────────────────────────── #}
+  {% if is_paginated %}
+    <nav aria-label="{% translate 'Page navigation' %}" class="mb-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+               href="?page={{ page_obj.previous_page_number }}{% if current_filters %}&{{ current_filters }}{% endif %}">
+              &laquo; {% translate "Previous" %}
+            </a>
+          </li>
+        {% endif %}
+
+        {% for num in paginator.page_range %}
+          {% if num == page_obj.number %}
+            <li class="page-item active" aria-current="page">
+              <span class="page-link">{{ num }}</span>
+            </li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <li class="page-item">
+              <a class="page-link"
+                 href="?page={{ num }}{% if current_filters %}&{{ current_filters }}{% endif %}">
+                {{ num }}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+               href="?page={{ page_obj.next_page_number }}{% if current_filters %}&{{ current_filters }}{% endif %}">
+              {% translate "Next" %} &raquo;
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
+{% else %}
+  <div class="alert alert-info" id="no-results-alert">
+    {% translate "No PG accommodations found matching your criteria. Try adjusting your search filters." %}
+  </div>
+{% endif %}
+{% endblock content %}
