@@ -36,7 +36,7 @@
                   <small>{{ pg.city }} &mdash; {{ pg.address|truncatewords:10 }}</small>
                 </p>
                 <p class="card-text">
-                  <strong>₹{{ pg.rent_per_month }}/month</strong>
+                  <strong>₹{{ pg.rent_per_month }}/{% translate "month" %}</strong>
                 </p>
                 {% if pg.amenities %}
                   <p class="card-text"><small class="text-muted">{{ pg.amenities|truncatewords:8 }}</small></p>
