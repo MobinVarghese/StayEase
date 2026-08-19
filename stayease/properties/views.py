@@ -175,8 +175,9 @@ class PGDeleteView(OwnerRequiredMixin, DeleteView):
             raise PermissionDenied(_("You do not have permission to delete this property."))
         return pg
 
-    def form_valid(self, request, *args, **kwargs):
-        pg = self.get_object()
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        pg = self.object
         if can_hard_delete_pg(pg):
             pg.delete()
             messages.success(request, _("PG \"%(name)s\" has been permanently deleted.") % {"name": pg.name})
