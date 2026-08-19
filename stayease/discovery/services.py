@@ -157,11 +157,21 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
     booking service performs the authoritative availability check.
     """
     rooms_data = []
-    for room in pg.rooms.filter(is_active=True).order_by("room_number"):  # type: ignore[attr-defined]
+    # Use python filtering/sorting on .all() to leverage prefetched relation cache
+    # and completely avoid N+1 queries.
+    active_rooms = sorted(
+        [r for r in pg.rooms.all() if r.is_active],  # type: ignore[attr-defined]
+        key=lambda r: r.room_number,
+    )
+    for room in active_rooms:
         beds_info = []
         available = 0
         total_active = 0
-        for bed in room.beds.filter(is_active=True).order_by("label"):  # type: ignore[attr-defined]
+        active_beds = sorted(
+            [b for b in room.beds.all() if b.is_active],  # type: ignore[attr-defined]
+            key=lambda b: b.label,
+        )
+        for bed in active_beds:
             total_active += 1
             has_active_booking = any(
                 b.status in ACTIVE_BOOKING_STATUSES
