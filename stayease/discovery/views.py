@@ -1,9 +1,7 @@
 """
 Discovery views — tenant-facing PG browsing and search.
 
-These views are intentionally **public** (no login required) so that
-anyone can browse PG listings.  The booking handoff link points to
-Member 4's ``BookingCreateView`` which enforces ``TenantRequiredMixin``.
+These views require the user to be logged in with the TENANT role.
 
 Business logic ownership: Member 3
 """
@@ -20,14 +18,15 @@ from stayease.discovery.services import (
     search_pgs,
 )
 from stayease.properties.models import PG
+from stayease.users.mixins import TenantRequiredMixin
 
 
-class PGDiscoveryListView(ListView):
+class PGDiscoveryListView(TenantRequiredMixin, ListView):
     """
-    Public PG listing page with search, filtering, and pagination.
+    Tenant-only PG listing page with search, filtering, and pagination.
 
-    Query parameters are passed to ``search_pgs()`` which builds a
-    filtered, annotated queryset at the database level.
+    Requires TENANT role login. Query parameters are passed to ``search_pgs()``
+    which builds a filtered, annotated queryset at the database level.
     """
 
     model = PG
@@ -52,11 +51,11 @@ class PGDiscoveryListView(ListView):
         return ctx
 
 
-class PGDiscoveryDetailView(DetailView):
+class PGDiscoveryDetailView(TenantRequiredMixin, DetailView):
     """
-    Public PG detail page showing rooms, beds, and availability.
+    PG detail page showing rooms, beds, and availability.
 
-    Only active PGs are visible.  Rooms and beds are loaded with
+    Requires TENANT role login. Only active PGs are visible. Rooms and beds are loaded with
     availability annotations.  Each bookable bed renders a link to
     ``bookings:booking_create`` (owned by Member 4).
     """
