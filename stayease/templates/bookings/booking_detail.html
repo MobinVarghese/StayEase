@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Booking #{{ booking.pk }} — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+        {% if request.user == booking.tenant %}
+          <li class="breadcrumb-item"><a href="{% url 'bookings:booking_list' %}">My Bookings</a></li>
+        {% elif request.user.is_owner %}
+          <li class="breadcrumb-item"><a href="{% url 'bookings:owner_booking_list' %}">Booking Management</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">Booking #{{ booking.pk }}</li>
+      </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">{% translate "Booking" %} #{{ booking.pk }}</h4>
+        {% if booking.status == "PENDING" %}
+          <span class="badge bg-warning text-dark fs-6">{{ booking.get_status_display }}</span>
+        {% elif booking.status == "APPROVED" %}
+          <span class="badge bg-info fs-6">{{ booking.get_status_display }}</span>
+        {% elif booking.status == "PAYMENT_PENDING" %}
+          <span class="badge bg-secondary fs-6">{{ booking.get_status_display }}</span>
+        {% elif booking.status == "CONFIRMED" %}
+          <span class="badge bg-success fs-6">{{ booking.get_status_display }}</span>
+        {% elif booking.status == "REJECTED" %}
+          <span class="badge bg-danger fs-6">{{ booking.get_status_display }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <th scope="row" style="width:35%">{% translate "Tenant" %}</th>
+              <td>{{ booking.tenant.name|default:booking.tenant.email }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "PG" %}</th>
+              <td>{{ booking.bed.room.pg.name }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Location" %}</th>
+              <td>{{ booking.bed.room.pg.address }}, {{ booking.bed.room.pg.city }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Room" %}</th>
+              <td>Room {{ booking.bed.room.room_number }} {% if booking.bed.room.room_type %}({{ booking.bed.room.room_type }}){% endif %}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Bed" %}</th>
+              <td>{{ booking.bed.label }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Monthly Rent" %}</th>
+              <td>₹{{ booking.bed.room.rent }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Requested At" %}</th>
+              <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
+            </tr>
+            {% if booking.approved_at %}
+              <tr>
+                <th scope="row">{% translate "Approved At" %}</th>
+                <td>{{ booking.approved_at|date:"d M Y H:i" }}</td>
+              </tr>
+            {% endif %}
+            {% if booking.rejected_at %}
+              <tr>
+                <th scope="row">{% translate "Rejected At" %}</th>
+                <td>{{ booking.rejected_at|date:"d M Y H:i" }}</td>
+              </tr>
+            {% endif %}
+            {% if booking.confirmed_at %}
+              <tr>
+                <th scope="row">{% translate "Confirmed At" %}</th>
+                <td>{{ booking.confirmed_at|date:"d M Y H:i" }}</td>
+              </tr>
+            {% endif %}
+            <tr>
+              <th scope="row">{% translate "Last Updated" %}</th>
+              <td>{{ booking.updated_at|date:"d M Y H:i" }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {# Owner action buttons — only for the PG owner on PENDING bookings #}
+        {% if request.user.is_owner and booking.status == "PENDING" and booking.bed.room.pg.owner == request.user %}
+          <div class="d-flex gap-2 mt-3">
+            <form method="post" action="{% url 'bookings:booking_approve' pk=booking.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success" id="btn-approve-booking">
+                {% translate "Approve" %}
+              </button>
+            </form>
+            <form method="post" action="{% url 'bookings:booking_reject' pk=booking.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger" id="btn-reject-booking">
+                {% translate "Reject" %}
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    {# Navigation links #}
+    <div class="d-flex gap-2">
+      {% if request.user == booking.tenant %}
+        <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-primary">
+          &larr; {% translate "Back to My Bookings" %}
+        </a>
+      {% elif request.user.is_owner %}
+        <a href="{% url 'bookings:owner_booking_list' %}" class="btn btn-outline-primary">
+          &larr; {% translate "Back to Booking Management" %}
+        </a>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock content %}

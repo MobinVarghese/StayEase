@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Request Booking" %} — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Request Booking</li>
+      </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{% translate "Confirm Booking Request" %}</h4>
+      </div>
+      <div class="card-body">
+
+        {# Property / Bed details #}
+        <h5 class="card-title">{{ pg.name }}</h5>
+        <p class="text-muted mb-1">{{ pg.address }}, {{ pg.city }}</p>
+
+        <table class="table table-bordered mt-3">
+          <tbody>
+            <tr>
+              <th scope="row" style="width:35%">{% translate "Room" %}</th>
+              <td>Room {{ room.room_number }} {% if room.room_type %}({{ room.room_type }}){% endif %}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Bed" %}</th>
+              <td>{{ bed.label }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Monthly Rent" %}</th>
+              <td>₹{{ room.rent }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {% if has_active_booking %}
+          <div class="alert alert-warning">
+            {% translate "This bed already has an active booking and may not be available." %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'bookings:booking_create' bed_pk=bed.pk %}">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" id="btn-confirm-booking">
+              {% translate "Submit Booking Request" %}
+            </button>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+              {% translate "Cancel" %}
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock content %}

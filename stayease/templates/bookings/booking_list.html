@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "My Bookings" %} — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+    <h2 class="mb-4">{% translate "My Bookings" %}</h2>
+
+    {% if bookings %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>{% translate "PG" %}</th>
+              <th>{% translate "Room" %}</th>
+              <th>{% translate "Bed" %}</th>
+              <th>{% translate "Status" %}</th>
+              <th>{% translate "Requested" %}</th>
+              <th>{% translate "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for booking in bookings %}
+              <tr>
+                <td>{{ booking.pk }}</td>
+                <td>{{ booking.bed.room.pg.name }}</td>
+                <td>Room {{ booking.bed.room.room_number }}</td>
+                <td>{{ booking.bed.label }}</td>
+                <td>
+                  {% if booking.status == "PENDING" %}
+                    <span class="badge bg-warning text-dark">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "APPROVED" %}
+                    <span class="badge bg-info">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "PAYMENT_PENDING" %}
+                    <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "CONFIRMED" %}
+                    <span class="badge bg-success">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "REJECTED" %}
+                    <span class="badge bg-danger">{{ booking.get_status_display }}</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark">{{ booking.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
+                <td>
+                  <a href="{% url 'bookings:booking_detail' pk=booking.pk %}"
+                     class="btn btn-sm btn-outline-primary">
+                    {% translate "View" %}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# Pagination #}
+      {% if is_paginated %}
+        <nav aria-label="Booking list pagination">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                  &laquo; {% translate "Previous" %}
+                </a>
+              </li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">
+                {% translate "Page" %} {{ page_obj.number }} {% translate "of" %} {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                  {% translate "Next" %} &raquo;
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="alert alert-info">
+        {% translate "You have no bookings yet. Browse PG listings to find your perfect accommodation!" %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock content %}
