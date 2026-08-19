@@ -65,7 +65,7 @@ class PGDiscoveryDetailView(TenantRequiredMixin, DetailView):
     pk_url_kwarg = "pg_pk"
 
     def get_queryset(self):
-        return PG.objects.filter(is_active=True).prefetch_related(
+        return PG.objects.filter(is_active=True).prefetch_related(  # type: ignore[attr-defined]
             "rooms__beds__bookings",
         )
 

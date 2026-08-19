@@ -40,7 +40,7 @@ def get_active_pgs_queryset() -> QuerySet[PG]:
     """
 
     return (
-        PG.objects.filter(is_active=True)
+        PG.objects.filter(is_active=True)  # type: ignore[attr-defined]
         .annotate(
             available_bed_count=Count(
                 "rooms__beds",
@@ -122,7 +122,7 @@ def get_pg_detail(pg_pk: int) -> PG | None:
     """
     try:
         return (
-            PG.objects.filter(pk=pg_pk, is_active=True)
+            PG.objects.filter(pk=pg_pk, is_active=True)  # type: ignore[attr-defined]
             .prefetch_related(
                 "rooms__beds",
                 "rooms__beds__bookings",
@@ -157,11 +157,11 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
     booking service performs the authoritative availability check.
     """
     rooms_data = []
-    for room in pg.rooms.filter(is_active=True).order_by("room_number"):
+    for room in pg.rooms.filter(is_active=True).order_by("room_number"):  # type: ignore[attr-defined]
         beds_info = []
         available = 0
         total_active = 0
-        for bed in room.beds.filter(is_active=True).order_by("label"):
+        for bed in room.beds.filter(is_active=True).order_by("label"):  # type: ignore[attr-defined]
             total_active += 1
             has_active_booking = any(
                 b.status in ACTIVE_BOOKING_STATUSES
@@ -186,7 +186,7 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
 def get_distinct_cities() -> list[str]:
     """Return a sorted list of distinct cities from active PGs."""
     return list(
-        PG.objects.filter(is_active=True)
+        PG.objects.filter(is_active=True)  # type: ignore[attr-defined]
         .values_list("city", flat=True)
         .distinct()
         .order_by("city"),
