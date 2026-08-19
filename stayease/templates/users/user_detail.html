@@ -20,7 +20,7 @@
           <p class="text-muted">{{ object.email }}</p>
         {% endif %}
         <p>
-          <span class="badge bg-{% if object.role == 'OWNER' %}success{% elif object.role == 'ADMIN' %}danger{% else %}primary{% endif %}">
+          <span class="badge bg-{% if object.is_owner %}success{% elif object.is_admin_user %}danger{% else %}primary{% endif %}">
             {{ object.get_role_display }}
           </span>
         </p>
