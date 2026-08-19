@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {% translate "Delete Room" %} | StayEase
+{% endblock title %}
+
+{% block content %}
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_list' %}">{% translate "My Properties" %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_detail' pg.pk %}">{{ pg.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% translate "Delete Room" %} {{ room.room_number }}</li>
+      </ol>
+    </nav>
+
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="card shadow-sm border-danger">
+          <div class="card-body">
+            <h3 class="card-title text-danger">{% translate "Delete Room" %} {{ room.room_number }}</h3>
+
+            {% if can_hard_delete %}
+              <p>
+                {% blocktranslate with num=room.room_number %}
+                  Are you sure you want to <strong>permanently delete</strong> Room "{{ num }}"
+                  and all its beds? This action cannot be undone.
+                {% endblocktranslate %}
+              </p>
+            {% else %}
+              <p>
+                {% blocktranslate with num=room.room_number %}
+                  Room "{{ num }}" has associated booking history and cannot be permanently deleted.
+                  It will be <strong>deactivated</strong> instead.
+                {% endblocktranslate %}
+              </p>
+            {% endif %}
+
+            <form method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                {% if can_hard_delete %}
+                  {% translate "Permanently Delete" %}
+                {% else %}
+                  {% translate "Deactivate Room" %}
+                {% endif %}
+              </button>
+              <a href="{% url 'properties:pg_detail' pg.pk %}" class="btn btn-outline-secondary ms-2">
+                {% translate "Cancel" %}
+              </a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

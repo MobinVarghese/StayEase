@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% load i18n crispy_forms_tags %}
+
+{% block title %}
+  {{ page_title }} | StayEase
+{% endblock title %}
+
+{% block content %}
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_list' %}">{% translate "My Properties" %}</a></li>
+        {% if pg %}
+          <li class="breadcrumb-item"><a href="{% url 'properties:pg_detail' pg.pk %}">{{ pg.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+      </ol>
+    </nav>
+
+    <h1>{{ page_title }}</h1>
+
+    <div class="row mt-4">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <form method="post" novalidate>
+              {% csrf_token %}
+              {{ form|crispy }}
+              <div class="mt-3">
+                <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                <a href="{% url 'properties:pg_list' %}" class="btn btn-outline-secondary ms-2">
+                  {% translate "Cancel" %}
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

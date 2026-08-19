@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {{ pg.name }} | StayEase
+{% endblock title %}
+
+{% block content %}
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'properties:pg_list' %}">{% translate "My Properties" %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ pg.name }}</li>
+      </ol>
+    </nav>
+
+    {# PG Header #}
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h1>
+          {{ pg.name }}
+          {% if not pg.is_active %}
+            <span class="badge bg-warning text-dark">{% translate "Inactive" %}</span>
+          {% endif %}
+        </h1>
+        <p class="text-muted mb-1">{{ pg.city }} &mdash; {{ pg.address }}</p>
+        <p><strong>₹{{ pg.rent_per_month }}</strong>/{% translate "month" %}</p>
+      </div>
+      <div>
+        <a href="{% url 'properties:pg_edit' pg.pk %}" class="btn btn-outline-secondary btn-sm">
+          {% translate "Edit PG" %}
+        </a>
+        <a href="{% url 'properties:pg_delete' pg.pk %}" class="btn btn-outline-danger btn-sm ms-1">
+          {% translate "Delete" %}
+        </a>
+      </div>
+    </div>
+
+    {# PG Details #}
+    {% if pg.description %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h5 class="card-title">{% translate "Description" %}</h5>
+          <p class="card-text">{{ pg.description }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if pg.amenities %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h5 class="card-title">{% translate "Amenities" %}</h5>
+          <p class="card-text">{{ pg.amenities }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Rooms Section #}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>{% translate "Rooms" %}</h3>
+      <a href="{% url 'properties:room_create' pg.pk %}" class="btn btn-primary btn-sm">
+        {% translate "+ Add Room" %}
+      </a>
+    </div>
+
+    {% if rooms %}
+      <div class="accordion" id="roomsAccordion">
+        {% for room in rooms %}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="roomHeading{{ room.pk }}">
+              <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#roomCollapse{{ room.pk }}"
+                      aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                      aria-controls="roomCollapse{{ room.pk }}">
+                <span>
+                  {% translate "Room" %} {{ room.room_number }}
+                  {% if room.room_type %}
+                    <span class="badge bg-info text-dark ms-2">{{ room.room_type }}</span>
+                  {% endif %}
+                  <span class="badge bg-secondary ms-2">
+                    {{ room.beds.count }}/{{ room.capacity }} {% translate "beds" %}
+                  </span>
+                  <span class="text-muted ms-2">₹{{ room.rent }}/{% translate "month" %}</span>
+                </span>
+              </button>
+            </h2>
+            <div id="roomCollapse{{ room.pk }}"
+                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 aria-labelledby="roomHeading{{ room.pk }}"
+                 data-bs-parent="#roomsAccordion">
+              <div class="accordion-body">
+                {% if room.description %}
+                  <p class="text-muted">{{ room.description }}</p>
+                {% endif %}
+
+                <div class="d-flex justify-content-end mb-2">
+                  <a href="{% url 'properties:room_detail' pg.pk room.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                    {% translate "Details" %}
+                  </a>
+                  <a href="{% url 'properties:room_edit' pg.pk room.pk %}" class="btn btn-sm btn-outline-secondary me-1">
+                    {% translate "Edit" %}
+                  </a>
+                  <a href="{% url 'properties:bed_create' pg.pk room.pk %}" class="btn btn-sm btn-outline-success">
+                    {% translate "+ Bed" %}
+                  </a>
+                </div>
+
+                {# Beds table #}
+                {% if room.beds.all %}
+                  <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                      <tr>
+                        <th>{% translate "Label" %}</th>
+                        <th>{% translate "Available" %}</th>
+                        <th>{% translate "Active" %}</th>
+                        <th>{% translate "Actions" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for bed in room.beds.all %}
+                        <tr {% if not bed.is_active %}class="table-warning"{% endif %}>
+                          <td>{{ bed.label }}</td>
+                          <td>
+                            {% if bed.is_available %}
+                              <span class="badge bg-success">{% translate "Yes" %}</span>
+                            {% else %}
+                              <span class="badge bg-danger">{% translate "No" %}</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if bed.is_active %}
+                              <span class="badge bg-success">{% translate "Active" %}</span>
+                            {% else %}
+                              <span class="badge bg-warning text-dark">{% translate "Inactive" %}</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            <a href="{% url 'properties:bed_edit' pg.pk room.pk bed.pk %}"
+                               class="btn btn-sm btn-outline-secondary">{% translate "Edit" %}</a>
+                            <a href="{% url 'properties:bed_delete' pg.pk room.pk bed.pk %}"
+                               class="btn btn-sm btn-outline-danger">{% translate "Del" %}</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <p class="text-muted">{% translate "No beds added yet." %}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-4">
+        <p class="text-muted">{% translate "No rooms added yet. Add a room to get started." %}</p>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}
