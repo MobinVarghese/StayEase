@@ -48,19 +48,22 @@ LOCALE_PATHS = [str(BASE_DIR / "locale")]
 
 if os.getenv("DATABASE_URL", default=None):
     DATABASES = {"default": env.db("DATABASE_URL")}
+    DATABASES["default"]["ATOMIC_REQUESTS"] = True
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env.str("POSTGRES_DB"),
-            "USER": env.str("POSTGRES_USER"),
-            "PASSWORD": env.str("POSTGRES_PASSWORD"),
-            "HOST": env.str("POSTGRES_HOST", default="postgres"),
+            "NAME": env.str("POSTGRES_DB", default="stayease"),
+            "USER": env.str("POSTGRES_USER", default="debug"),
+            "PASSWORD": env.str("POSTGRES_PASSWORD", default="debug"),
+            "HOST": env.str(
+                "POSTGRES_HOST",
+                default="postgres" if env.str("USE_DOCKER", default="no") == "yes" else "127.0.0.1",
+            ),
             "PORT": env.str("POSTGRES_PORT", default="5432"),
+            "ATOMIC_REQUESTS": True,
         },
     }
-
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -95,7 +98,10 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "stayease.users",
-    # Your stuff: custom apps go here
+    "stayease.properties",
+    "stayease.bookings",
+    "stayease.notifications",
+    "stayease.payments",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -280,7 +286,7 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_LOGIN_METHODS = {"email"}
 # https://docs.allauth.org/en/latest/account/configuration.html
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "role*", "password1*", "password2*"]
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # https://docs.allauth.org/en/latest/account/configuration.html

@@ -2,12 +2,26 @@
 from typing import ClassVar
 
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django.db.models import CharField
 from django.db.models import EmailField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
+
+
+class UserRole(models.TextChoices):
+    """
+    Canonical user roles for the StayEase platform.
+
+    Every member should reference this enum rather than
+    hard-coding role strings.
+    """
+
+    TENANT = "TENANT", _("Tenant")
+    OWNER = "OWNER", _("Owner")
+    ADMIN = "ADMIN", _("Admin")
 
 
 class User(AbstractUser):
@@ -23,11 +37,38 @@ class User(AbstractUser):
     last_name = None  # type: ignore[assignment]
     email = EmailField(_("email address"), unique=True)
     username = None  # type: ignore[assignment]
+    role = CharField(
+        _("role"),
+        max_length=20,
+        choices=UserRole.choices,
+        default=UserRole.TENANT,
+        help_text=_(
+            "Determines the user's platform permissions: Tenant, Owner, or Admin.",
+        ),
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects: ClassVar[UserManager] = UserManager()
+
+    # ------------------------------------------------------------------
+    # Convenience role-check properties
+    # Other members should use these instead of comparing strings.
+    # ------------------------------------------------------------------
+
+    @property
+    def is_tenant(self) -> bool:
+        return self.role == UserRole.TENANT
+
+    @property
+    def is_owner(self) -> bool:
+        return self.role == UserRole.OWNER
+
+    @property
+    def is_admin_user(self) -> bool:
+        """Named `is_admin_user` to avoid shadowing Django's admin helpers."""
+        return self.role == UserRole.ADMIN
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.
