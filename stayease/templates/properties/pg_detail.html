@@ -81,7 +81,7 @@
                     <span class="badge bg-info text-dark ms-2">{{ room.room_type }}</span>
                   {% endif %}
                   <span class="badge bg-secondary ms-2">
-                    {{ room.beds.count }}/{{ room.capacity }} {% translate "beds" %}
+                    {{ room.beds.all|length }}/{{ room.capacity }} {% translate "beds" %}
                   </span>
                   <span class="text-muted ms-2">₹{{ room.rent }}/{% translate "month" %}</span>
                 </span>
