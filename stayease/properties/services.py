@@ -29,8 +29,7 @@ def check_pg_ownership(pg: PG, user) -> None:
     from django.core.exceptions import PermissionDenied
 
     if pg.owner_id != user.pk:
-        msg = "You do not have permission to manage this property."
-        raise PermissionDenied(msg)
+        raise PermissionDenied(_("You do not have permission to manage this property."))
 
 
 def check_room_belongs_to_pg(room: Room, pg: PG) -> None:
