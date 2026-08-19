@@ -47,26 +47,20 @@ class RoleRequiredMixin(LoginRequiredMixin):
     """
 
     required_role: str | None = None
-    raise_exception = True  # 403 instead of redirect for role mismatch
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
-        # Let LoginRequiredMixin handle unauthenticated users first
-        response = super().dispatch(request, *args, **kwargs)
+        # Preserve LoginRequiredMixin's redirect-to-login behavior.
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
 
-        # If super() already returned a redirect (unauthenticated), use it
-        if hasattr(response, "status_code") and response.status_code in (
-            301,
-            302,
-        ):
-            return response
-
-        # Now check role
+        # Enforce role *before* running the view handler.
         if (
             self.required_role is not None
             and getattr(request.user, "role", None) != self.required_role
         ):
             raise PermissionDenied(_MSG_ROLE_DENIED)
-        return response
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 class TenantRequiredMixin(RoleRequiredMixin):
