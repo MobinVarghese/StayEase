@@ -10,6 +10,12 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+
+from stayease.notifications.services import (
+    notify_booking_approved,
+    notify_booking_rejected,
+    notify_booking_requested,
+)
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
@@ -80,6 +86,9 @@ class BookingCreateView(TenantRequiredMixin, TemplateView):
             for msg in exc.messages:
                 messages.error(request, msg)
             return redirect("bookings:booking_create", bed_pk=bed.pk)
+
+        # Member 5 integration: notify the PG owner
+        notify_booking_requested(booking)
 
         messages.success(
             request,
@@ -183,6 +192,9 @@ class BookingApproveView(OwnerRequiredMixin, View):
                 messages.error(request, msg)
             return redirect("bookings:booking_detail", pk=pk)
 
+        # Member 5 integration: notify the tenant
+        notify_booking_approved(booking)
+
         messages.success(request, _("Booking has been approved."))
         return redirect("bookings:booking_detail", pk=pk)
 
@@ -207,6 +219,9 @@ class BookingRejectView(OwnerRequiredMixin, View):
             for msg in exc.messages:
                 messages.error(request, msg)
             return redirect("bookings:booking_detail", pk=pk)
+
+        # Member 5 integration: notify the tenant
+        notify_booking_rejected(booking)
 
         messages.success(request, _("Booking has been rejected."))
         return redirect("bookings:booking_detail", pk=pk)

@@ -109,6 +109,16 @@
           </div>
         {% endif %}
 
+        {# Tenant action buttons — only for the tenant on APPROVED bookings #}
+        {% if request.user == booking.tenant and booking.status == "APPROVED" %}
+          <div class="d-flex gap-2 mt-3">
+            <a href="{% url 'payments:payment_initiate' booking_pk=booking.pk %}"
+               class="btn btn-primary" id="btn-pay-now">
+              {% translate "Pay Now" %} — ₹{{ booking.bed.room.rent }}
+            </a>
+          </div>
+        {% endif %}
+
       </div>
     </div>
 

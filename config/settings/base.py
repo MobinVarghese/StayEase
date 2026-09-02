@@ -206,6 +206,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "stayease.users.context_processors.allauth_settings",
+                "stayease.notifications.context_processors.unread_notification_count",
             ],
         },
     },

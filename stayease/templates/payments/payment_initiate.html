@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Initiate Payment — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'bookings:booking_list' %}">My Bookings</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'bookings:booking_detail' pk=booking.pk %}">Booking #{{ booking.pk }}</a></li>
+        <li class="breadcrumb-item active">{% translate "Payment" %}</li>
+      </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header">
+        <h4 class="mb-0">{% translate "Payment for Booking" %} #{{ booking.pk }}</h4>
+      </div>
+      <div class="card-body">
+
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <th scope="row" style="width:35%">{% translate "PG" %}</th>
+              <td>{{ booking.bed.room.pg.name }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Location" %}</th>
+              <td>{{ booking.bed.room.pg.address }}, {{ booking.bed.room.pg.city }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Room" %}</th>
+              <td>Room {{ booking.bed.room.room_number }} {% if booking.bed.room.room_type %}({{ booking.bed.room.room_type }}){% endif %}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Bed" %}</th>
+              <td>{{ booking.bed.label }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Monthly Rent" %}</th>
+              <td class="fw-bold fs-5">₹{{ amount }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="alert alert-info" role="alert">
+          <strong>{% translate "Note:" %}</strong>
+          {% translate "This is a dummy payment for demonstration purposes. No real money will be charged." %}
+        </div>
+
+        <form method="post" action="{% url 'payments:payment_initiate' booking_pk=booking.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-lg w-100" id="btn-proceed-to-pay">
+            {% translate "Proceed to Pay" %} — ₹{{ amount }}
+          </button>
+        </form>
+
+      </div>
+    </div>
+
+    <a href="{% url 'bookings:booking_detail' pk=booking.pk %}" class="btn btn-outline-secondary">
+      &larr; {% translate "Back to Booking" %}
+    </a>
+
+  </div>
+</div>
+{% endblock content %}

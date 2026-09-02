@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Notifications — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>{% translate "Notifications" %}</h2>
+      {% if unread_count %}
+        <form method="post" action="{% url 'notifications:mark_all_read' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm" id="btn-mark-all-read">
+            {% translate "Mark all as read" %} ({{ unread_count }})
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if notifications %}
+      <div class="list-group">
+        {% for notification in notifications %}
+          <div class="list-group-item {% if not notification.is_read %}list-group-item-light border-start border-primary border-3{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="me-3 flex-grow-1">
+                <p class="mb-1 {% if not notification.is_read %}fw-bold{% endif %}">
+                  {{ notification.message }}
+                </p>
+                <small class="text-muted">
+                  {{ notification.created_at|date:"d M Y H:i" }}
+                </small>
+                {% if notification.booking %}
+                  <small class="ms-2">
+                    <a href="{% url 'bookings:booking_detail' pk=notification.booking.pk %}">
+                      {% translate "View Booking" %} #{{ notification.booking.pk }}
+                    </a>
+                  </small>
+                {% endif %}
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                {% if not notification.is_read %}
+                  <form method="post" action="{% url 'notifications:mark_read' pk=notification.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary" title="{% translate 'Mark as read' %}">
+                      ✓
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="badge bg-light text-muted">{% translate "Read" %}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Pagination #}
+      {% if is_paginated %}
+        <nav aria-label="Notification pages" class="mt-4">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                  &laquo; {% translate "Previous" %}
+                </a>
+              </li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">
+                {% translate "Page" %} {{ page_obj.number }} {% translate "of" %} {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                  {% translate "Next" %} &raquo;
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <p class="fs-5">{% translate "You have no notifications." %}</p>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock content %}

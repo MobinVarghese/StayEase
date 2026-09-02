@@ -22,6 +22,8 @@ urlpatterns = [
     path("properties/", include("stayease.properties.urls", namespace="properties")),
     path("bookings/", include("stayease.bookings.urls", namespace="bookings")),
     path("discover/", include("stayease.discovery.urls", namespace="discovery")),
+    path("notifications/", include("stayease.notifications.urls", namespace="notifications")),
+    path("payments/", include("stayease.payments.urls", namespace="payments")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
