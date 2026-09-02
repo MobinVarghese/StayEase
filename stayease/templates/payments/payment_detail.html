@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Payment #{{ payment.pk }} — StayEase{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'bookings:booking_list' %}">My Bookings</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'bookings:booking_detail' pk=payment.booking.pk %}">Booking #{{ payment.booking.pk }}</a></li>
+        <li class="breadcrumb-item active">{% translate "Payment" %} #{{ payment.pk }}</li>
+      </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">{% translate "Payment Receipt" %}</h4>
+        {% if payment.status == "SUCCESS" %}
+          <span class="badge bg-success fs-6">{{ payment.get_status_display }}</span>
+        {% elif payment.status == "FAILED" %}
+          <span class="badge bg-danger fs-6">{{ payment.get_status_display }}</span>
+        {% elif payment.status == "PENDING" %}
+          <span class="badge bg-warning text-dark fs-6">{{ payment.get_status_display }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <th scope="row" style="width:35%">{% translate "Transaction Ref" %}</th>
+              <td class="font-monospace">{{ payment.transaction_ref }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Amount" %}</th>
+              <td class="fw-bold">₹{{ payment.amount }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Status" %}</th>
+              <td>
+                {% if payment.status == "SUCCESS" %}
+                  <span class="text-success fw-bold">{{ payment.get_status_display }}</span>
+                {% elif payment.status == "FAILED" %}
+                  <span class="text-danger fw-bold">{{ payment.get_status_display }}</span>
+                {% else %}
+                  <span class="text-warning fw-bold">{{ payment.get_status_display }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Booking" %}</th>
+              <td>
+                <a href="{% url 'bookings:booking_detail' pk=payment.booking.pk %}">
+                  #{{ payment.booking.pk }}
+                </a>
+                — {{ payment.booking.bed.room.pg.name }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Created At" %}</th>
+              <td>{{ payment.created_at|date:"d M Y H:i" }}</td>
+            </tr>
+            <tr>
+              <th scope="row">{% translate "Updated At" %}</th>
+              <td>{{ payment.updated_at|date:"d M Y H:i" }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {% if payment.status == "SUCCESS" %}
+          <div class="alert alert-success" role="alert">
+            {% translate "Your booking has been confirmed. Thank you!" %}
+          </div>
+        {% elif payment.status == "FAILED" %}
+          <div class="alert alert-danger" role="alert">
+            {% translate "Payment failed. Please contact support or try again from your booking page." %}
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'bookings:booking_detail' pk=payment.booking.pk %}" class="btn btn-outline-primary">
+        &larr; {% translate "Back to Booking" %}
+      </a>
+      <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary">
+        {% translate "All Bookings" %}
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock content %}
