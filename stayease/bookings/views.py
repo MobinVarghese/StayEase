@@ -31,7 +31,9 @@ from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
 from stayease.bookings.models import Booking
 from stayease.bookings.models import BookingStatus
 from stayease.bookings.services import approve_booking
+from stayease.bookings.services import can_view_booking_contact
 from stayease.bookings.services import create_booking_request
+from stayease.bookings.services import get_booking_contact_info
 from stayease.bookings.services import reject_booking
 from stayease.properties.models import Bed
 from stayease.users.mixins import OwnerRequiredMixin
@@ -132,14 +134,24 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         user = self.request.user
-        is_tenant = obj.tenant_id == user.pk
-        is_pg_owner = obj.bed.room.pg.owner_id == user.pk
+        is_tenant = obj.tenant == user
+        is_pg_owner = obj.bed.room.pg.owner == user
         is_admin = getattr(user, "is_admin_user", False)
         if not (is_tenant or is_pg_owner or is_admin):
             raise PermissionDenied(
                 _("You do not have permission to view this booking.")
             )
         return obj
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        booking = self.object
+        user = self.request.user
+        can_view = can_view_booking_contact(booking, user)
+        ctx["can_view_contact"] = can_view
+        ctx["contact_info"] = get_booking_contact_info(booking, user)
+        return ctx
+
 
 
 # ======================================================================

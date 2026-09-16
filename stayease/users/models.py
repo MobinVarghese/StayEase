@@ -2,6 +2,7 @@
 from typing import ClassVar
 
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import CharField
 from django.db.models import EmailField
@@ -31,12 +32,22 @@ class User(AbstractUser):
     check forms.SignupForm and forms.SocialSignupForms accordingly.
     """
 
-    # First and last name do not cover name patterns around the globe
-    name = CharField(_("Name of User"), blank=True, max_length=255)
-    first_name = None  # type: ignore[assignment]
-    last_name = None  # type: ignore[assignment]
+    first_name = CharField(_("first name"), max_length=150, blank=False)
+    last_name = CharField(_("last name"), max_length=150, blank=False)
     email = EmailField(_("email address"), unique=True)
     username = None  # type: ignore[assignment]
+    phone_number = CharField(
+        _("phone number"),
+        max_length=10,
+        blank=False,
+        validators=[
+            RegexValidator(
+                regex=r"^\d{10}$",
+                message=_("Phone number must be exactly 10 digits."),
+            ),
+        ],
+        help_text=_("10-digit contact phone number."),
+    )
     role = CharField(
         _("role"),
         max_length=20,
@@ -53,9 +64,13 @@ class User(AbstractUser):
     objects: ClassVar[UserManager] = UserManager()
 
     # ------------------------------------------------------------------
-    # Convenience role-check properties
-    # Other members should use these instead of comparing strings.
+    # Convenience helpers
     # ------------------------------------------------------------------
+
+    @property
+    def name(self) -> str:
+        """Full name — combines first and last for template/display use."""
+        return f"{self.first_name} {self.last_name}".strip()
 
     @property
     def is_tenant(self) -> bool:

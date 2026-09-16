@@ -22,6 +22,7 @@ Member 5 integration:
 
 from __future__ import annotations
 
+from typing import Any
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import PermissionDenied
@@ -322,3 +323,70 @@ def get_owner_bookings(owner: User):
         .select_related("tenant", "bed__room__pg")
         .order_by("-created_at")
     )
+
+
+# ======================================================================
+# Contact visibility authorization & extraction
+# ======================================================================
+
+
+def can_view_booking_contact(booking: Booking, user: Any) -> bool:
+    """
+    Determine whether *user* is authorized to view contact information for *booking*.
+
+    Contact details (phone numbers) are visible ONLY when:
+    1. The booking status is CONFIRMED.
+    2. The user is authenticated.
+    3. The user is either the tenant who made the booking OR the owner
+       of the property containing the booked bed.
+
+    Returns False for all other states (PENDING, APPROVED, PAYMENT_PENDING,
+    REJECTED, CANCELLED) and unauthorized users.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+
+    if not booking or getattr(booking, "status", None) != BookingStatus.CONFIRMED:
+        return False
+
+    is_tenant = booking.tenant == user
+    try:
+        is_owner = booking.bed.room.pg.owner == user
+    except AttributeError:
+        is_owner = False
+
+    return is_tenant or is_owner
+
+
+def get_booking_contact_info(booking: Booking, user: Any) -> dict | None:
+    """
+    Return contact details of the counterpart for *booking* if *user* is
+    authorized, otherwise None.
+
+    If *user* is the tenant -> returns the PG owner's contact information.
+    If *user* is the PG owner -> returns the tenant's contact information.
+    """
+    if not can_view_booking_contact(booking, user):
+        return None
+
+    if booking.tenant == user:
+        counterpart = booking.bed.room.pg.owner
+        role_label = _("Owner")
+    else:
+        counterpart = booking.tenant
+        role_label = _("Tenant")
+
+    name = getattr(counterpart, "name", "")
+    if not name:
+        name = getattr(counterpart, "email", "")
+
+    phone_number = getattr(counterpart, "phone_number", "") or ""
+
+    return {
+        "counterpart": counterpart,
+        "role_label": role_label,
+        "name": name,
+        "phone_number": phone_number,
+        "email": getattr(counterpart, "email", ""),
+    }
+

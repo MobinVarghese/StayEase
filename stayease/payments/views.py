@@ -48,12 +48,12 @@ class PaymentInitiateView(TenantRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         booking = self._get_booking()
         # Only the tenant can see the payment page
-        if booking.tenant_id != self.request.user.pk:
+        if booking.tenant != self.request.user:
             raise PermissionDenied(
                 _("You do not have permission to pay for this booking.")
             )
         ctx["booking"] = booking
-        ctx["amount"] = booking.bed.room.rent
+        ctx["amount"] = booking.bed.rent_per_month
         return ctx
 
     def post(self, request, *args, **kwargs):
@@ -95,7 +95,7 @@ class PaymentProcessView(TenantRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         payment = self._get_payment()
-        if payment.booking.tenant_id != self.request.user.pk:
+        if payment.booking.tenant != self.request.user:
             raise PermissionDenied(
                 _("You do not have permission to process this payment.")
             )
@@ -156,7 +156,7 @@ class PaymentDetailView(TenantRequiredMixin, DetailView):
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if obj.booking.tenant_id != self.request.user.pk:
+        if obj.booking.tenant != self.request.user:
             raise PermissionDenied(
                 _("You do not have permission to view this payment.")
             )

@@ -11,6 +11,8 @@ Covers:
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 from django.test import Client
 from django.urls import reverse
@@ -303,19 +305,21 @@ class TestBedCreateView:
         room = RoomFactory(pg=pg, capacity=3)
         _login(client, owner)
         url = reverse("properties:bed_create", kwargs={"pg_pk": pg.pk, "room_pk": room.pk})
-        data = {"label": "Bed A", "is_available": True}
+        data = {"label": "Bed A", "rent_per_month": "3000.00", "is_available": True}
         resp = client.post(url, data)
         assert resp.status_code == 302
         assert Bed.objects.filter(room=room, label="Bed A").exists()
+        bed = Bed.objects.get(room=room, label="Bed A")
+        assert bed.rent_per_month == Decimal("3000.00")
 
     def test_cannot_exceed_capacity(self, client):
         owner = _owner()
         pg = PGFactory(owner=owner)
         room = RoomFactory(pg=pg, capacity=1)
-        BedFactory(room=room, label="Bed A")
+        BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"))
         _login(client, owner)
         url = reverse("properties:bed_create", kwargs={"pg_pk": pg.pk, "room_pk": room.pk})
-        data = {"label": "Bed B", "is_available": True}
+        data = {"label": "Bed B", "rent_per_month": "3000.00", "is_available": True}
         resp = client.post(url, data)
         assert resp.status_code == 200  # re-renders form with error
         assert not Bed.objects.filter(room=room, label="Bed B").exists()
@@ -331,16 +335,17 @@ class TestBedUpdateView:
         owner = _owner()
         pg = PGFactory(owner=owner)
         room = RoomFactory(pg=pg, capacity=2)
-        bed = BedFactory(room=room, label="Bed A", is_available=True)
+        bed = BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"), is_available=True)
         _login(client, owner)
         url = reverse("properties:bed_edit", kwargs={
             "pg_pk": pg.pk, "room_pk": room.pk, "bed_pk": bed.pk,
         })
-        data = {"label": "Bed A", "is_available": False}
+        data = {"label": "Bed A", "rent_per_month": "3500.00", "is_available": False}
         resp = client.post(url, data)
         assert resp.status_code == 302
         bed.refresh_from_db()
         assert bed.is_available is False
+        assert bed.rent_per_month == Decimal("3500.00")
 
 
 # ===========================================================================

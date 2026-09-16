@@ -139,3 +139,10 @@ class Booking(models.Model):
     def pg(self):
         """Shortcut to the PG through bed → room → pg."""
         return self.bed.room.pg
+
+    def can_view_contact(self, user) -> bool:
+        """Return True if *user* is authorized to view contact details for this booking."""
+        from stayease.bookings.services import can_view_booking_contact
+
+        return can_view_booking_contact(self, user)
+

@@ -74,7 +74,7 @@ def initiate_payment(*, booking: Booking, user: User) -> Payment:
     # ------------------------------------------------------------------
     # 1. Verify ownership — only the booking's tenant can pay
     # ------------------------------------------------------------------
-    if booking.tenant_id != user.pk:
+    if booking.tenant != user:
         raise PermissionDenied(
             _("You do not have permission to pay for this booking.")
         )
@@ -106,7 +106,7 @@ def initiate_payment(*, booking: Booking, user: User) -> Payment:
         # ------------------------------------------------------------------
         payment = Payment.objects.create(
             booking=booking,
-            amount=booking.bed.room.rent,
+            amount=booking.bed.rent_per_month,
             status=PaymentStatus.PENDING,
             transaction_ref=_generate_transaction_ref(),
         )
@@ -152,7 +152,7 @@ def process_dummy_payment(
     # ------------------------------------------------------------------
     # 1. Verify ownership
     # ------------------------------------------------------------------
-    if payment.booking.tenant_id != user.pk:
+    if payment.booking.tenant != user:
         raise PermissionDenied(
             _("You do not have permission to process this payment.")
         )

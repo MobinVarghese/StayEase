@@ -1,3 +1,65 @@
 {% extends "base.html" %}
+{% load i18n static %}
 
+{% block title %}
+  {% translate "About StayEase" %} — Modern Co-Living & PG Platform
+{% endblock title %}
 
+{% block content %}
+<div class="row justify-content-center my-4">
+  <div class="col-lg-9">
+    <div class="text-center mb-5">
+      <span class="section-badge">{% translate "Our Story" %}</span>
+      <h1 class="display-5 fw-bold text-dark mb-3">
+        {% translate "Making Co-Living Simple, Honest & Accessible" %}
+      </h1>
+      <p class="lead text-muted max-w-700 mx-auto">
+        {% translate "StayEase was created to bridge the gap between young migrants seeking comfortable PG accommodations and dedicated property owners providing quality stays." %}
+      </p>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-5 bg-white">
+      <h3 class="fw-bold mb-3 text-dark">{% translate "The Challenge We Solve" %}</h3>
+      <p class="text-muted lh-lg">
+        Finding a reliable Paying Guest (PG) in India's booming cities like Bengaluru, Pune, Hyderabad, and Delhi NCR often involves navigating unverified listings, broker fees, vague room details, and lack of transparency about bed availability.
+      </p>
+      <p class="text-muted lh-lg">
+        StayEase replaces uncertainty with clear, real-time inventory. We provide individual bed-level booking, transparent rent breakdowns, owner verification, and instant notifications so you always know what you're booking.
+      </p>
+
+      <div class="row g-4 mt-3">
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 h-100">
+            <i class="bi bi-shield-check fs-2 text-success mb-2 d-inline-block"></i>
+            <h5 class="fw-bold">{% translate "Zero Brokerage" %}</h5>
+            <p class="small text-muted mb-0">Connect directly with verified property owners without intermediary charges.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 h-100">
+            <i class="bi bi-door-open fs-2 text-primary mb-2 d-inline-block"></i>
+            <h5 class="fw-bold">{% translate "Bed-Level Precision" %}</h5>
+            <p class="small text-muted mb-0">Select and confirm your specific bed in single, double, or shared room arrangements.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 h-100">
+            <i class="bi bi-lightning-charge fs-2 text-warning mb-2 d-inline-block"></i>
+            <h5 class="fw-bold">{% translate "Instant Status" %}</h5>
+            <p class="small text-muted mb-0">Track booking approval and manager communication right from your dashboard.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <a href="{% url 'discovery:pg_list' %}" class="btn btn-brand-primary btn-lg px-4 py-2 me-2">
+        <i class="bi bi-search me-1"></i> {% translate "Browse PGs" %}
+      </a>
+      <a href="{% url 'home' %}" class="btn btn-brand-outline btn-lg px-4 py-2">
+        <i class="bi bi-house me-1"></i> {% translate "Back to Home" %}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock content %}

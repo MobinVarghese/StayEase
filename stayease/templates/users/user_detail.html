@@ -1,47 +1,119 @@
 {% extends "base.html" %}
 
-{% load static %}
+{% load i18n %}
 
 {% block title %}
-  User:
-
-    {{ object.name }}
-
-
+  {% translate "My Profile" %} | StayEase
 {% endblock title %}
+
 {% block content %}
-  <div class="container">
-    <div class="row">
-      <div class="col-sm-12">
-        <h2>
-          {{ object.name }}
-        </h2>
-        {% if object == request.user %}
-          <p class="text-muted">{{ object.email }}</p>
-        {% endif %}
-        <p>
-          <span class="badge bg-{% if object.is_owner %}success{% elif object.is_admin_user %}danger{% else %}primary{% endif %}">
-            {{ object.get_role_display }}
-          </span>
-        </p>
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+
+      <!-- Profile Header -->
+      <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+        <div>
+          <h1 class="h2 fw-bold text-dark mb-1">{% translate "My Profile" %}</h1>
+          <p class="text-muted mb-0">{% translate "Manage your personal information and contact details." %}</p>
+        </div>
+        <span class="badge rounded-pill px-3 py-2 fs-6 {% if request.user.is_owner %}bg-success text-white{% elif request.user.is_admin_user %}bg-danger text-white{% else %}bg-primary text-white{% endif %}">
+          {{ request.user.get_role_display }}
+        </span>
       </div>
-    </div>
-    {% if object == request.user %}
-      <!-- Action buttons -->
-      <div class="row">
-        <div class="col-sm-12">
-          <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">My Info</a>
-          <a class="btn btn-primary"
-             href="{% url 'account_email' %}"
-             role="button">E-Mail</a>
-          <a class="btn btn-primary"
-             href="{% url 'mfa_index' %}"
-             role="button">MFA</a>
-          <!-- Your Stuff: Custom user template urls -->
+
+      <!-- Profile Card -->
+      <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-4 p-md-5">
+
+          <form method="post" action="{% if form_action %}{{ form_action }}{% else %}{{ request.path }}{% endif %}" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger shadow-sm mb-4" role="alert">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- First Name -->
+            <div class="mb-3">
+              <label for="{{ form.first_name.id_for_label }}" class="form-label fw-semibold">
+                {% translate "First name" %} <span class="text-danger">*</span>
+              </label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.first_name.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Last Name -->
+            <div class="mb-3">
+              <label for="{{ form.last_name.id_for_label }}" class="form-label fw-semibold">
+                {% translate "Last name" %} <span class="text-danger">*</span>
+              </label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.last_name.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Email Address -->
+            <div class="mb-3">
+              <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                {% translate "Email" %} <span class="text-danger">*</span>
+              </label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.email.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Phone Number -->
+            <div class="mb-4">
+              <label for="{{ form.phone_number.id_for_label }}" class="form-label fw-semibold">
+                {% translate "Phone number" %} <span class="text-danger">*</span>
+              </label>
+              {{ form.phone_number }}
+              <div class="form-text text-muted">
+                {{ form.phone_number.help_text }}
+              </div>
+              {% if form.phone_number.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.phone_number.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid mt-4">
+              <button type="submit" id="save-profile-btn" class="btn btn-primary py-2 px-4 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                <i class="bi bi-check-circle"></i>
+                {% translate "Save Changes" %}
+              </button>
+            </div>
+
+          </form>
+
         </div>
       </div>
-      <!-- End Action buttons -->
-    {% endif %}
-  </div>
-{% endblock content %}
 
+    </div>
+  </div>
+</div>
+{% endblock content %}

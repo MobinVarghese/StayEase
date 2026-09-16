@@ -24,8 +24,10 @@ from django.db import transaction
 from stayease.bookings.models import Booking
 from stayease.bookings.models import BookingStatus
 from stayease.bookings.services import approve_booking
+from stayease.bookings.services import can_view_booking_contact
 from stayease.bookings.services import confirm_booking
 from stayease.bookings.services import create_booking_request
+from stayease.bookings.services import get_booking_contact_info
 from stayease.bookings.services import get_owner_bookings
 from stayease.bookings.services import get_tenant_bookings
 from stayease.bookings.services import mark_payment_pending
@@ -264,3 +266,109 @@ class TestTransactionRollback:
                 raise ValueError("Simulated Error")
 
         assert not Booking.objects.filter(tenant=tenant, bed=bed).exists()
+
+
+class TestContactVisibilityServices:
+    def test_unauthenticated_or_none_user(self):
+        booking = BookingFactory(status=BookingStatus.CONFIRMED)
+        assert not can_view_booking_contact(booking, None)
+        assert get_booking_contact_info(booking, None) is None
+
+    def test_non_confirmed_statuses_hide_contact(self):
+        owner = UserFactory(role=UserRole.OWNER)
+        tenant = UserFactory(role=UserRole.TENANT)
+        pg = PGFactory(owner=owner)
+
+        for status in [
+            BookingStatus.PENDING,
+            BookingStatus.APPROVED,
+            BookingStatus.PAYMENT_PENDING,
+            BookingStatus.REJECTED,
+        ]:
+            bed = BedFactory(room__pg=pg)
+            booking = BookingFactory(tenant=tenant, bed=bed, status=status)
+            assert not can_view_booking_contact(booking, tenant)
+            assert not can_view_booking_contact(booking, owner)
+            assert get_booking_contact_info(booking, tenant) is None
+            assert get_booking_contact_info(booking, owner) is None
+
+    def test_confirmed_status_allows_tenant_and_owner(self):
+        owner = UserFactory(
+            role=UserRole.OWNER,
+            first_name="Alice",
+            last_name="Owner",
+            phone_number="9876543210",
+        )
+        tenant = UserFactory(
+            role=UserRole.TENANT,
+            first_name="Bob",
+            last_name="Tenant",
+            phone_number="9123456780",
+        )
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
+
+        # Tenant viewing
+        assert can_view_booking_contact(booking, tenant)
+        tenant_contact_info = get_booking_contact_info(booking, tenant)
+        assert tenant_contact_info is not None
+        assert tenant_contact_info["role_label"] == "Owner"
+        assert tenant_contact_info["name"] == "Alice Owner"
+        assert tenant_contact_info["phone_number"] == "9876543210"
+
+        # Owner viewing
+        assert can_view_booking_contact(booking, owner)
+        owner_contact_info = get_booking_contact_info(booking, owner)
+        assert owner_contact_info is not None
+        assert owner_contact_info["role_label"] == "Tenant"
+        assert owner_contact_info["name"] == "Bob Tenant"
+        assert owner_contact_info["phone_number"] == "9123456780"
+
+    def test_unrelated_users_cannot_view_contact(self):
+        owner = UserFactory(role=UserRole.OWNER)
+        other_owner = UserFactory(role=UserRole.OWNER)
+        tenant = UserFactory(role=UserRole.TENANT)
+        other_tenant = UserFactory(role=UserRole.TENANT)
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
+
+        assert not can_view_booking_contact(booking, other_tenant)
+        assert not can_view_booking_contact(booking, other_owner)
+        assert get_booking_contact_info(booking, other_tenant) is None
+        assert get_booking_contact_info(booking, other_owner) is None
+
+    def test_status_transition_from_confirmed_hides_contact(self):
+        owner = UserFactory(role=UserRole.OWNER)
+        tenant = UserFactory(role=UserRole.TENANT)
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
+
+        assert can_view_booking_contact(booking, tenant)
+        # If booking changes from confirmed to another status
+        booking.status = BookingStatus.REJECTED
+        assert not can_view_booking_contact(booking, tenant)
+        assert get_booking_contact_info(booking, tenant) is None
+
+    def test_missing_phone_number_handled_gracefully(self):
+        owner = UserFactory(role=UserRole.OWNER, phone_number="")
+        tenant = UserFactory(role=UserRole.TENANT, phone_number="")
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
+
+        info = get_booking_contact_info(booking, tenant)
+        assert info is not None
+        assert info["phone_number"] == ""
+
+    def test_booking_model_can_view_contact(self):
+        owner = UserFactory(role=UserRole.OWNER)
+        tenant = UserFactory(role=UserRole.TENANT)
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
+        assert booking.can_view_contact(tenant)
+        assert booking.can_view_contact(owner)
+

@@ -60,7 +60,7 @@
             </tr>
             <tr>
               <th scope="row">{% translate "Monthly Rent" %}</th>
-              <td>₹{{ booking.bed.room.rent }}</td>
+              <td>₹{{ booking.bed.rent_per_month }}</td>
             </tr>
             <tr>
               <th scope="row">{% translate "Requested At" %}</th>
@@ -114,11 +114,85 @@
           <div class="d-flex gap-2 mt-3">
             <a href="{% url 'payments:payment_initiate' booking_pk=booking.pk %}"
                class="btn btn-primary" id="btn-pay-now">
-              {% translate "Pay Now" %} — ₹{{ booking.bed.room.rent }}
+              {% translate "Pay Now" %} — ₹{{ booking.bed.rent_per_month }}
             </a>
           </div>
         {% endif %}
 
+      </div>
+    </div>
+
+    {# Contact Details Section #}
+    <div class="card shadow-sm mb-4" id="booking-contact-section">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-semibold">
+          <i class="bi bi-person-lines-fill me-2 text-primary"></i>
+          {% if can_view_contact %}
+            {% if request.user == booking.tenant %}
+              {% translate "Owner Contact Details" %}
+            {% else %}
+              {% translate "Tenant Contact Details" %}
+            {% endif %}
+          {% else %}
+            {% translate "Contact Details" %}
+          {% endif %}
+        </h5>
+        {% if can_view_contact %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+            <i class="bi bi-shield-check me-1"></i>{% translate "Verified Contact" %}
+          </span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if can_view_contact and contact_info %}
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3 bg-light rounded-3 border">
+            <div>
+              <div class="text-muted small fw-medium text-uppercase mb-1">
+                {{ contact_info.role_label }}
+              </div>
+              <h5 class="mb-1 text-dark fw-bold" id="contact-name">
+                {{ contact_info.name }}
+              </h5>
+              <div class="d-flex align-items-center text-secondary" id="contact-phone-wrapper">
+                <i class="bi bi-telephone me-2 text-primary"></i>
+                {% if contact_info.phone_number %}
+                  <span class="fw-semibold" id="contact-phone">{{ contact_info.phone_number }}</span>
+                {% else %}
+                  <span class="text-muted fst-italic" id="contact-phone-missing">{% translate "Not provided" %}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if contact_info.phone_number %}
+              <div>
+                <a href="tel:{{ contact_info.phone_number }}"
+                   class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2"
+                   id="btn-call-contact">
+                  <i class="bi bi-telephone-fill"></i>
+                  <span>{% translate "Call" %} {{ contact_info.role_label }}</span>
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="alert alert-light border shadow-none d-flex align-items-center gap-3 mb-0" role="alert" id="contact-notice">
+            <i class="bi bi-shield-lock fs-3 text-muted"></i>
+            <div>
+              <div class="fw-medium text-dark" id="contact-notice-text">
+                {% if request.user == booking.tenant %}
+                  {% translate "Contact details will be available after confirmation." %}
+                {% elif booking.bed.room.pg.owner == request.user %}
+                  {% translate "Tenant contact details will be available after confirmation." %}
+                {% else %}
+                  {% translate "Contact details are available only to confirmed booking participants." %}
+                {% endif %}
+              </div>
+              <div class="small text-muted">
+                {% translate "Phone numbers are protected and shared only between tenant and owner once the reservation is fully confirmed." %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
 

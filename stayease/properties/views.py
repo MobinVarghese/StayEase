@@ -43,7 +43,7 @@ from stayease.users.mixins import OwnerRequiredMixin
 def _get_owner_pg(request, pg_pk):
     """Return PG owned by the current user or raise 403."""
     pg = get_object_or_404(PG, pk=pg_pk)
-    if pg.owner_id != request.user.pk:
+    if pg.owner != request.user:
         raise PermissionDenied(_("You do not have permission to manage this property."))
     return pg
 
@@ -92,6 +92,7 @@ class PGCreateView(OwnerRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.object is not None
         return reverse("properties:pg_detail", kwargs={"pg_pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -146,6 +147,7 @@ class PGUpdateView(OwnerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.object is not None
         return reverse("properties:pg_detail", kwargs={"pg_pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -175,17 +177,16 @@ class PGDeleteView(OwnerRequiredMixin, DeleteView):
             raise PermissionDenied(_("You do not have permission to delete this property."))
         return pg
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        pg = self.object
+    def form_valid(self, form):
+        pg = self.get_object()
         if can_hard_delete_pg(pg):
             pg.delete()
-            messages.success(request, _("PG \"%(name)s\" has been permanently deleted.") % {"name": pg.name})
+            messages.success(self.request, _("PG \"%(name)s\" has been permanently deleted.") % {"name": pg.name})
         else:
             pg.is_active = False
             pg.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("PG \"%(name)s\" has been deactivated (booking history preserved).") % {"name": pg.name},
             )
         return redirect(self.get_success_url())
@@ -221,6 +222,8 @@ class RoomCreateView(OwnerRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.pg is not None
+        assert self.object is not None
         return reverse("properties:room_detail", kwargs={
             "pg_pk": self.pg.pk,
             "room_pk": self.object.pk,
@@ -278,6 +281,8 @@ class RoomUpdateView(OwnerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.pg is not None
+        assert self.object is not None
         return reverse("properties:room_detail", kwargs={
             "pg_pk": self.pg.pk,
             "room_pk": self.object.pk,
@@ -306,16 +311,16 @@ class RoomDeleteView(OwnerRequiredMixin, DeleteView):
     def get_queryset(self):
         return Room.objects.filter(pg=self.pg)
 
-    def form_valid(self, request, *args, **kwargs):
+    def form_valid(self, form):
         room = self.get_object()
         if can_hard_delete_room(room):
             room.delete()
-            messages.success(request, _("Room \"%(num)s\" has been permanently deleted.") % {"num": room.room_number})
+            messages.success(self.request, _("Room \"%(num)s\" has been permanently deleted.") % {"num": room.room_number})
         else:
             room.is_active = False
             room.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("Room \"%(num)s\" has been deactivated (booking history preserved).") % {"num": room.room_number},
             )
         return redirect(self.get_success_url())
@@ -431,16 +436,16 @@ class BedDeleteView(OwnerRequiredMixin, DeleteView):
     def get_queryset(self):
         return Bed.objects.filter(room=self.room)
 
-    def form_valid(self, request, *args, **kwargs):
+    def form_valid(self, form):
         bed = self.get_object()
         if can_hard_delete_bed(bed):
             bed.delete()
-            messages.success(request, _("Bed \"%(label)s\" has been permanently deleted.") % {"label": bed.label})
+            messages.success(self.request, _("Bed \"%(label)s\" has been permanently deleted.") % {"label": bed.label})
         else:
             bed.is_active = False
             bed.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("Bed \"%(label)s\" has been deactivated (booking history preserved).") % {"label": bed.label},
             )
         return redirect(self.get_success_url())

@@ -36,8 +36,16 @@
         <p class="text-muted">{{ pg.address }}</p>
       </div>
       <div class="col-md-4">
-        <p class="mb-1"><strong>{% translate "Rent (from)" %}</strong></p>
-        <p class="text-muted">₹{{ pg.rent_per_month }}/{% translate "month" %}</p>
+        <p class="mb-1"><strong>{% translate "Pricing" %}</strong></p>
+        <p class="text-muted">
+          {% if pg.starting_rent %}
+            {% translate "Starting from" %} ₹{{ pg.starting_rent|floatformat:0 }}/{% translate "month" %}
+          {% elif pg.rent_per_month %}
+            ₹{{ pg.rent_per_month|floatformat:0 }}/{% translate "month" %}
+          {% else %}
+            {% translate "Contact for pricing" %}
+          {% endif %}
+        </p>
       </div>
       <div class="col-md-4">
         {% if pg.amenities %}
@@ -69,7 +77,11 @@
                 <small class="text-muted">({{ room_info.room.room_type }})</small>
               {% endif %}
             </span>
-            <span class="badge bg-info me-2">₹{{ room_info.room.rent }}/{% translate "month" %}</span>
+            {% if room_info.starting_rent %}
+              <span class="badge bg-info me-2">{% translate "From" %} ₹{{ room_info.starting_rent|floatformat:0 }}/{% translate "month" %}</span>
+            {% elif room_info.room.rent %}
+              <span class="badge bg-info me-2">₹{{ room_info.room.rent|floatformat:0 }}/{% translate "month" %}</span>
+            {% endif %}
             {% if room_info.available_count > 0 %}
               <span class="badge bg-success">
                 {{ room_info.available_count }}/{{ room_info.total_active_count }}
@@ -96,6 +108,7 @@
                 <thead class="table-light">
                   <tr>
                     <th>{% translate "Bed" %}</th>
+                    <th>{% translate "Monthly Rent" %}</th>
                     <th>{% translate "Status" %}</th>
                     <th>{% translate "Action" %}</th>
                   </tr>
@@ -103,10 +116,13 @@
                 <tbody>
                   {% for bed_info in room_info.beds %}
                     <tr id="bed-row-{{ bed_info.bed.pk }}">
-                      <td>{{ bed_info.bed.label }}</td>
+                      <td><strong>{{ bed_info.bed.label }}</strong></td>
+                      <td>₹{{ bed_info.bed.rent_per_month }}/{% translate "month" %}</td>
                       <td>
                         {% if bed_info.is_bookable %}
                           <span class="badge bg-success">{% translate "Available" %}</span>
+                        {% elif bed_info.is_occupied %}
+                          <span class="badge bg-warning text-dark">{% translate "Occupied" %}</span>
                         {% else %}
                           <span class="badge bg-secondary">{% translate "Unavailable" %}</span>
                         {% endif %}
@@ -125,7 +141,7 @@
                     </tr>
                   {% empty %}
                     <tr>
-                      <td colspan="3" class="text-muted text-center">
+                      <td colspan="4" class="text-muted text-center">
                         {% translate "No beds configured for this room." %}
                       </td>
                     </tr>

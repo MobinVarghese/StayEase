@@ -26,7 +26,18 @@
         <p class="text-muted mt-2">
           {% translate "Capacity:" %} {{ room.capacity }} |
           {% translate "Active beds:" %} {{ active_bed_count }} |
-          {% translate "Rent:" %} ₹{{ room.rent }}/{% translate "month" %}
+          {% translate "Occupied:" %} {{ room.occupied_beds_count }} |
+          {% translate "Available:" %} {{ room.available_beds_count }} |
+          {% translate "Starting from:" %} ₹{{ room.starting_rent|default:"N/A" }}/{% translate "month" %}
+          {% if room.availability_status_code == 'AVAILABLE' %}
+            <span class="badge bg-success ms-1">{% translate "Active / Available" %}</span>
+          {% elif room.availability_status_code == 'PARTIALLY_OCCUPIED' %}
+            <span class="badge bg-info text-dark ms-1">{% translate "Active / Partially occupied" %}</span>
+          {% elif room.availability_status_code == 'FULL' %}
+            <span class="badge bg-danger ms-1">{% translate "Full / Unavailable" %}</span>
+          {% else %}
+            <span class="badge bg-secondary ms-1">{{ room.availability_status }}</span>
+          {% endif %}
         </p>
       </div>
       <div>
@@ -67,6 +78,7 @@
           <thead class="table-light">
             <tr>
               <th>{% translate "Label" %}</th>
+              <th>{% translate "Monthly Rent" %}</th>
               <th>{% translate "Available" %}</th>
               <th>{% translate "Status" %}</th>
               <th>{% translate "Created" %}</th>
@@ -77,8 +89,13 @@
             {% for bed in beds %}
               <tr {% if not bed.is_active %}class="table-warning"{% endif %}>
                 <td>{{ bed.label }}</td>
+                <td>₹{{ bed.rent_per_month }}/{% translate "mo" %}</td>
                 <td>
-                  {% if bed.is_available %}
+                  {% if not bed.is_active %}
+                    <span class="badge bg-secondary">{% translate "Inactive" %}</span>
+                  {% elif bed.is_occupied %}
+                    <span class="badge bg-warning text-dark">{% translate "Occupied" %}</span>
+                  {% elif bed.is_available %}
                     <span class="badge bg-success">{% translate "Available" %}</span>
                   {% else %}
                     <span class="badge bg-danger">{% translate "Unavailable" %}</span>

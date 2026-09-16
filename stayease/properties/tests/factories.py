@@ -48,6 +48,7 @@ class RoomFactory(DjangoModelFactory):
 class BedFactory(DjangoModelFactory):
     room = factory.SubFactory(RoomFactory)
     label = factory.Sequence(lambda n: f"Bed {chr(65 + n % 26)}{n // 26 or ''}")
+    rent_per_month = factory.LazyFunction(lambda: Decimal("3000.00"))
     is_available = True
     is_active = True
 

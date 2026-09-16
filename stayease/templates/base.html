@@ -1,4 +1,3 @@
-
 {% load static i18n %}<!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
@@ -7,146 +6,281 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>
       {% block title %}
-      StayEase
-    {% endblock title %}
-  </title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-        content="PG room booking website" />
-  <meta name="author"
-        content="Mobin Varghese" />
-  <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
-  {% block css %}
-    <!-- Latest compiled and minified Bootstrap CSS -->
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
-          integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
-          crossorigin="anonymous"
-          referrerpolicy="no-referrer" />
-<!-- Your stuff: Third-party CSS libraries go here -->
-<!-- This file stores project-specific CSS -->
+        StayEase — Find Verified PG Rooms & Co-Living Spaces
+      {% endblock title %}
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+          content="StayEase is India's leading modern PG room & bed booking platform. Search verified PGs, check real-time bed availability, and book your stay without brokerage." />
+    <meta name="author" content="Mobin Varghese" />
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
 
-  
-  <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+    {% block css %}
+      <!-- Google Fonts: Plus Jakarta Sans -->
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+      <!-- Bootstrap 5 CSS -->
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
+            integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer" />
 
-{% endblock css %}
-<!-- Le javascript
-    ================================================== -->
-{# Placed at the top of the document so pages load faster with defer #}
-{% block javascript %}
+      <!-- Bootstrap Icons -->
+      <link rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
+      <!-- StayEase Custom Styles -->
+      <link href="{% static 'css/project.css' %}" rel="stylesheet" />
+    {% endblock css %}
 
-<!-- Bootstrap JS -->
-<script defer
-        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"
-        integrity="sha512-1/RvZTcCDEUjY/CypiMz+iqqtaoQfAITmNSJY17Myp4Ms5mdxPS5UV7iOfdZoxcGhzFbOm6sntTKJppjvuhg4g=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
-<!-- Your stuff: Third-party javascript libraries go here -->
+    {% block javascript %}
+      <!-- Bootstrap JS -->
+      <script defer
+              src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"
+              integrity="sha512-i9cEfJwUwViEPFKdC1enz4ZRGBj8YQo6QByFTF92YXHi7waCqyexvRD75S5NVTsSiTv7rKWqG9Y5eFxmRsOn0A=="
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"></script>
 
+      <!-- Project Specific JS -->
+      <script defer src="{% static 'js/project.js' %}"></script>
+    {% endblock javascript %}
+  </head>
 
-<!-- place project specific Javascript in this file -->
+  <body class="{% block bodyclass %}{% endblock bodyclass %} d-flex flex-column min-vh-100">
+    {% block body %}
+    <!-- Navbar -->
+    <header>
+      <nav class="navbar navbar-expand-lg navbar-stayease">
+        <div class="container">
+          <a class="navbar-brand" href="{% url 'home' %}">
+            <span class="navbar-brand-badge">
+              <i class="bi bi-houses-fill"></i>
+            </span>
+            Stay<span>Ease</span>
+          </a>
 
-  
-  <script defer src="{% static 'js/project.js' %}"></script>
+          <button class="navbar-toggler border-0 shadow-none"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#navbarSupportedContent"
+                  aria-controls="navbarSupportedContent"
+                  aria-expanded="false"
+                  aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
 
-
-{% endblock javascript %}
-</head>
-<body class="{% block bodyclass %}{% endblock bodyclass %}">
-  {% block body %}
-  <div class="mb-1">
-    <nav class="navbar navbar-expand-md navbar-light bg-light">
-      <div class="container-fluid">
-        <button class="navbar-toggler navbar-toggler-right"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <a class="navbar-brand" href="{% url 'home' %}">StayEase</a>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-              <a class="nav-link" href="{% url 'home' %}">Home <span class="visually-hidden">(current)</span></a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'about' %}">About</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'discovery:pg_list' %}">Browse PGs</a>
-            </li>
-            {% if request.user.is_authenticated %}
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
               <li class="nav-item">
-                <a class="nav-link"
-                   href="{% url 'users:detail' request.user.pk %}">{% translate "My Profile" %}</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'notifications:notification_list' %}">
-                  {% translate "Notifications" %}
-                  {% if unread_notification_count %}
-                    <span class="badge bg-danger">{{ unread_notification_count }}</span>
-                  {% endif %}
+                <a class="nav-link" href="{% url 'home' %}">
+                  <i class="bi bi-house-door me-1"></i>{% translate "Home" %}
                 </a>
               </li>
               <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
+                <a class="nav-link" href="{% url 'discovery:pg_list' %}">
+                  <i class="bi bi-search me-1"></i>{% translate "Browse PGs" %}
+                </a>
               </li>
-            {% else %}
-              {% if ACCOUNT_ALLOW_REGISTRATION %}
-                <li class="nav-item">
-                  {# URL provided by django-allauth/account/urls.py #}
-                  <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
-                </li>
-              {% endif %}
+              {% if not request.user.is_authenticated %}
               <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
+                <a class="nav-link" href="{% url 'home' %}#how-it-works">
+                  <i class="bi bi-compass me-1"></i>{% translate "How It Works" %}
+                </a>
               </li>
-            {% endif %}
-          </ul>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'about' %}">
+                  <i class="bi bi-info-circle me-1"></i>{% translate "About" %}
+                </a>
+              </li>
+              {% endif %}
+            </ul>
+
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-2">
+              {% if request.user.is_authenticated %}
+                {% if request.user.is_owner %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'properties:pg_list' %}">
+                      <i class="bi bi-building me-1"></i>{% translate "My Properties" %}
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:dashboard_owner' %}">
+                      <i class="bi bi-speedometer2 me-1"></i>{% translate "Dashboard" %}
+                    </a>
+                  </li>
+                {% elif request.user.is_tenant %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'bookings:booking_list' %}">
+                      <i class="bi bi-journal-bookmark me-1"></i>{% translate "My Bookings" %}
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:dashboard_tenant' %}">
+                      <i class="bi bi-speedometer2 me-1"></i>{% translate "Dashboard" %}
+                    </a>
+                  </li>
+                {% endif %}
+
+                <li class="nav-item">
+                  <a class="nav-link position-relative" href="{% url 'notifications:notification_list' %}">
+                    <i class="bi bi-bell"></i>
+                    {% translate "Notifications" %}
+                    {% if unread_notification_count %}
+                      <span class="badge rounded-pill bg-danger ms-1">{{ unread_notification_count }}</span>
+                    {% endif %}
+                  </a>
+                </li>
+
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle d-flex align-items-center gap-1"
+                     href="#"
+                     id="userDropdown"
+                     role="button"
+                     data-bs-toggle="dropdown"
+                     aria-expanded="false">
+                    <i class="bi bi-person-circle fs-5 text-primary"></i>
+                    <span class="fw-semibold">{{ request.user.first_name|default:request.user.email|truncatechars:18 }}</span>
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="userDropdown">
+                    <li>
+                      <a class="dropdown-item py-2" href="{% url 'users:profile' %}">
+                        <i class="bi bi-person me-2 text-primary"></i>{% translate "My Profile" %}
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <form id="logout-form" method="post" action="{% url 'account_logout' %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="dropdown-item py-2 text-danger border-0 bg-transparent w-100 text-start">
+                          <i class="bi bi-box-arrow-right me-2"></i>{% translate "Sign Out" %}
+                        </button>
+                      </form>
+                    </li>
+                  </ul>
+                </li>
+              {% else %}
+                <li class="nav-item">
+                  <a id="log-in-link" class="btn btn-brand-outline py-2 px-3" href="{% url 'account_login' %}">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    {% translate "Sign In" %}
+                  </a>
+                </li>
+                {% if ACCOUNT_ALLOW_REGISTRATION %}
+                  <li class="nav-item">
+                    <a id="sign-up-link" class="btn btn-brand-primary py-2 px-3" href="{% url 'account_signup' %}">
+                      <i class="bi bi-person-plus"></i>
+                      {% translate "Sign Up" %}
+                    </a>
+                  </li>
+                {% endif %}
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow-1">
+      {% block main_wrapper %}
+        <div class="container my-4">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-dismissible shadow-sm {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          {% block main %}
+            {% block content %}
+              <p>Use this document as a way to quick start any new project.</p>
+            {% endblock content %}
+          {% endblock main %}
+        </div>
+      {% endblock main_wrapper %}
+    </main>
+
+    <!-- Footer -->
+    {% block footer %}
+    <footer class="footer-stayease mt-auto">
+      <div class="container">
+        <div class="row g-4 mb-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="d-flex align-items-center mb-3">
+              <span class="navbar-brand-badge me-2">
+                <i class="bi bi-houses-fill"></i>
+              </span>
+              <span class="fs-4 fw-bold text-white">Stay<span class="text-primary">Ease</span></span>
+            </div>
+            <p class="text-muted small pe-lg-4">
+              StayEase is India's dedicated co-living and PG booking platform. Finding verified accommodation with transparent pricing and real-time bed availability has never been easier.
+            </p>
+            <div class="d-flex gap-3 text-muted fs-5 mt-3">
+              <a href="#" class="text-muted" aria-label="Twitter"><i class="bi bi-twitter-x"></i></a>
+              <a href="#" class="text-muted" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+              <a href="#" class="text-muted" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+              <a href="#" class="text-muted" aria-label="GitHub"><i class="bi bi-github"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-6">
+            <h6>{% translate "Discover" %}</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+              <li><a href="{% url 'discovery:pg_list' %}">{% translate "Browse All PGs" %}</a></li>
+              <li><a href="{% url 'discovery:pg_list' %}?city=Bengaluru">{% translate "PGs in Bengaluru" %}</a></li>
+              <li><a href="{% url 'discovery:pg_list' %}?city=Pune">{% translate "PGs in Pune" %}</a></li>
+              <li><a href="{% url 'discovery:pg_list' %}?city=Hyderabad">{% translate "PGs in Hyderabad" %}</a></li>
+              <li><a href="{% url 'discovery:pg_list' %}?city=Delhi">{% translate "PGs in Delhi NCR" %}</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <h6>{% translate "For Owners & Tenants" %}</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+              <li><a href="{% url 'account_signup' %}">{% translate "List Your Property" %}</a></li>
+              <li><a href="{% url 'home' %}#how-it-works">{% translate "How Booking Works" %}</a></li>
+              <li><a href="{% url 'home' %}#amenities">{% translate "Verified Amenities" %}</a></li>
+              <li><a href="{% url 'about' %}">{% translate "Why Choose StayEase" %}</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <h6>{% translate "Contact & Support" %}</h6>
+            <p class="small text-muted mb-2">
+              <i class="bi bi-envelope me-2 text-primary"></i>support@stayease.in
+            </p>
+            <p class="small text-muted mb-2">
+              <i class="bi bi-telephone me-2 text-primary"></i>+91 (800) 123-4567
+            </p>
+            <p class="small text-muted mb-0">
+              <i class="bi bi-geo-alt me-2 text-primary"></i>Koramangala, Bengaluru, India
+            </p>
+          </div>
+        </div>
+
+        <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center text-muted gap-2">
+          <p class="mb-0">&copy; 2026 StayEase. {% translate "All rights reserved." %}</p>
+          <p class="mb-0 small">
+            {% translate "Designed with excellence for comfortable living." %}
+          </p>
         </div>
       </div>
-    </nav>
-  </div>
-  <div class="container">
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-          {{ message }}
-          <button type="button"
-                  class="btn-close"
-                  data-bs-dismiss="alert"
-                  aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-    {% block main %}
-      {% block content %}
-        <p>Use this document as a way to quick start any new project.</p>
-      {% endblock content %}
-    {% endblock main %}
+    </footer>
+    {% endblock footer %}
+    {% endblock body %}
 
-  </div>
-  {% endblock body %}
-  <!-- /container -->
-  {% block modal %}
-  {% endblock modal %}
-  {% block inline_javascript %}
-    {% comment %}
-    Script tags with only code, no src (defer by default). To run
-    with a "defer" so that you run inline code:
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        /* Run whatever you want */
-      });
-    </script>
-    {% endcomment %}
-  {% endblock inline_javascript %}
-</body>
+    {% block modal %}{% endblock modal %}
+
+    {% block inline_javascript %}
+    {% endblock inline_javascript %}
+  </body>
 </html>

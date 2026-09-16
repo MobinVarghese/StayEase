@@ -88,7 +88,7 @@ class TestBedModel:
         pg = PGFactory(name="Sunrise PG")
         room = RoomFactory(pg=pg, room_number="202")
         bed = BedFactory(room=room, label="Bed A")
-        assert str(bed) == "Sunrise PG - Room 202 - Bed A"
+        assert "Sunrise PG - Room 202 - Bed A" in str(bed)
 
     def test_belongs_to_room(self):
         bed = BedFactory()

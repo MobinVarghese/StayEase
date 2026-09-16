@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from django.db.models import Count
+from django.db.models import Min
 from django.db.models import Q
 
 from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
@@ -30,13 +31,10 @@ def get_active_pgs_queryset() -> QuerySet[PG]:
     """
     Return the base queryset for tenant-visible PGs.
 
-    Only active PGs are shown.  The queryset is annotated with
-    ``available_bed_count`` — the number of beds that are both
-    inventory-available (``is_available=True``, ``is_active=True``),
-    in an active room, AND do not have an active booking.
-
-    This lets templates display an availability summary without
-    additional queries.
+    Only active PGs are shown. The queryset is annotated with:
+    - ``available_bed_count`` — count of active, available beds with no active booking
+    - ``starting_rent_annotated`` — minimum rent among currently available beds
+    - ``min_bed_rent`` — fallback minimum rent among all active beds in this PG
     """
 
     return (
@@ -54,6 +52,24 @@ def get_active_pgs_queryset() -> QuerySet[PG]:
                 ),
                 distinct=True,
             ),
+            starting_rent_annotated=Min(
+                "rooms__beds__rent_per_month",
+                filter=Q(
+                    rooms__beds__is_active=True,
+                    rooms__beds__is_available=True,
+                    rooms__is_active=True,
+                )
+                & ~Q(
+                    rooms__beds__bookings__status__in=ACTIVE_BOOKING_STATUSES,
+                ),
+            ),
+            min_bed_rent=Min(
+                "rooms__beds__rent_per_month",
+                filter=Q(
+                    rooms__beds__is_active=True,
+                    rooms__is_active=True,
+                ),
+            ),
         )
         .order_by("-created_at")
     )
@@ -67,20 +83,10 @@ def search_pgs(params: dict[str, Any]) -> QuerySet[PG]:
 
     * ``q`` — keyword search across PG name, description, city, amenities.
     * ``city`` — exact city match (case-insensitive).
-    * ``min_price`` / ``max_price`` — ``rent_per_month`` range filter.
+    * ``min_price`` / ``max_price`` — bed-level starting rent range filter.
     * ``available_only`` — if truthy, exclude PGs with zero available beds.
 
     All filtering is pushed to the database.
-
-    Parameters
-    ----------
-    params:
-        Typically ``request.GET`` or a cleaned-form dict.
-
-    Returns
-    -------
-    QuerySet[PG]
-        Filtered, annotated queryset ready for pagination.
     """
     qs = get_active_pgs_queryset()
 
@@ -99,14 +105,22 @@ def search_pgs(params: dict[str, Any]) -> QuerySet[PG]:
     if city:
         qs = qs.filter(city__iexact=city)
 
-    # -- Price range ---------------------------------------------------
+    # -- Price range (evaluated on starting available bed rent, with fallbacks) ---
     min_price = _to_decimal(params.get("min_price"))
     if min_price is not None:
-        qs = qs.filter(rent_per_month__gte=min_price)
+        qs = qs.filter(
+            Q(starting_rent_annotated__gte=min_price)
+            | Q(starting_rent_annotated__isnull=True, min_bed_rent__gte=min_price)
+            | Q(starting_rent_annotated__isnull=True, min_bed_rent__isnull=True, rent_per_month__gte=min_price)
+        )
 
     max_price = _to_decimal(params.get("max_price"))
     if max_price is not None:
-        qs = qs.filter(rent_per_month__lte=max_price)
+        qs = qs.filter(
+            Q(starting_rent_annotated__lte=max_price)
+            | Q(starting_rent_annotated__isnull=True, min_bed_rent__lte=max_price)
+            | Q(starting_rent_annotated__isnull=True, min_bed_rent__isnull=True, rent_per_month__lte=max_price)
+        )
 
     # -- Availability --------------------------------------------------
     if params.get("available_only"):
@@ -135,7 +149,7 @@ def get_pg_detail(pg_pk: int) -> PG | None:
 
 def get_rooms_with_availability(pg: PG) -> list[dict]:
     """
-    Build a list of room dicts with bed availability info for a PG.
+    Build a list of room dicts with bed availability and pricing info for a PG.
 
     Each dict contains::
 
@@ -150,11 +164,8 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
             ],
             "available_count": int,
             "total_active_count": int,
+            "starting_rent": Decimal | None,
         }
-
-    ``is_bookable`` means the bed is active, inventory-available, and
-    has no active booking.  This is a **display** hint only — Member 4's
-    booking service performs the authoritative availability check.
     """
     rooms_data = []
     # Use python filtering/sorting on .all() to leverage prefetched relation cache
@@ -174,8 +185,8 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
         for bed in active_beds:
             total_active += 1
             has_active_booking = any(
-                b.status in ACTIVE_BOOKING_STATUSES
-                for b in bed.bookings.all()
+                booking.status in ACTIVE_BOOKING_STATUSES
+                for booking in bed.bookings.all()  # type: ignore[attr-defined]
             )
             bookable = bed.is_available and not has_active_booking
             if bookable:
@@ -183,12 +194,30 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
             beds_info.append({
                 "bed": bed,
                 "is_bookable": bookable,
+                "is_occupied": has_active_booking,
             })
+
+        bookable_rents = [
+            b.rent_per_month
+            for b in active_beds
+            if b.is_available and not any(
+                booking.status in ACTIVE_BOOKING_STATUSES
+                for booking in b.bookings.all()  # type: ignore[attr-defined]
+            )
+        ]
+        active_rents = [b.rent_per_month for b in active_beds]
+        room_starting_rent = (
+            min(bookable_rents)
+            if bookable_rents
+            else (min(active_rents) if active_rents else room.rent)
+        )
+
         rooms_data.append({
             "room": room,
             "beds": beds_info,
             "available_count": available,
             "total_active_count": total_active,
+            "starting_rent": room_starting_rent,
         })
     return rooms_data
 

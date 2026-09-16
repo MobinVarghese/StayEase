@@ -32,7 +32,6 @@ class PGForm(forms.ModelForm):
             "description",
             "address",
             "city",
-            "rent_per_month",
             "amenities",
         ]
         widgets = {
@@ -40,15 +39,8 @@ class PGForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "address": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
             "city": forms.TextInput(attrs={"class": "form-control"}),
-            "rent_per_month": forms.NumberInput(attrs={"class": "form-control", "min": "0.01", "step": "0.01"}),
             "amenities": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "e.g. Wi-Fi, Laundry, Parking"}),
         }
-
-    def clean_rent_per_month(self):
-        value = self.cleaned_data.get("rent_per_month")
-        if value is not None and value <= 0:
-            raise ValidationError(_("Rent must be a positive amount."))
-        return value
 
 
 class RoomForm(forms.ModelForm):
@@ -60,14 +52,12 @@ class RoomForm(forms.ModelForm):
             "room_number",
             "room_type",
             "capacity",
-            "rent",
             "description",
         ]
         widgets = {
             "room_number": forms.TextInput(attrs={"class": "form-control"}),
             "room_type": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Single, Double, Dormitory"}),
             "capacity": forms.NumberInput(attrs={"class": "form-control", "min": "1"}),
-            "rent": forms.NumberInput(attrs={"class": "form-control", "min": "0.01", "step": "0.01"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 
@@ -75,12 +65,6 @@ class RoomForm(forms.ModelForm):
         value = self.cleaned_data.get("capacity")
         if value is not None and value < 1:
             raise ValidationError(_("Capacity must be at least 1."))
-        return value
-
-    def clean_rent(self):
-        value = self.cleaned_data.get("rent")
-        if value is not None and value <= 0:
-            raise ValidationError(_("Rent must be a positive amount."))
         return value
 
 
@@ -91,10 +75,12 @@ class BedForm(forms.ModelForm):
         model = Bed
         fields = [
             "label",
+            "rent_per_month",
             "is_available",
         ]
         widgets = {
-            "label": forms.TextInput(attrs={"class": "form-control", "placeholder": 'e.g. Bed A'}),
+            "label": forms.TextInput(attrs={"class": "form-control", "placeholder": 'e.g. Bed A, Bed 1'}),
+            "rent_per_month": forms.NumberInput(attrs={"class": "form-control", "min": "0.01", "step": "0.01", "placeholder": "e.g. 7500.00"}),
             "is_available": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
@@ -105,6 +91,12 @@ class BedForm(forms.ModelForm):
         """
         self.room = room
         super().__init__(*args, **kwargs)
+
+    def clean_rent_per_month(self):
+        value = self.cleaned_data.get("rent_per_month")
+        if value is None or value <= 0:
+            raise ValidationError(_("Rent must be a positive amount."))
+        return value
 
     def clean(self):
         cleaned_data = super().clean()

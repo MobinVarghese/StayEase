@@ -1,3 +1,459 @@
 {% extends "base.html" %}
+{% load static i18n %}
 
+{% block title %}
+  StayEase — Smart PG & Co-Living Accommodation Booking
+{% endblock title %}
 
+{% block main_wrapper %}
+{# Messages notification if any #}
+{% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-dismissible shadow-sm {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{# ── 1. Hero Section ──────────────────────────────────────────────── #}
+<section class="hero-section">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <div class="hero-pill-badge">
+          <i class="bi bi-stars"></i>
+          <span>{% translate "India's Modern PG & Co-Living Network" %}</span>
+        </div>
+        <h1 class="hero-title">
+          {% translate "Find Your Perfect" %} <span class="text-gradient">{% translate "PG Accommodation" %}</span>, {% translate "Simplified." %}
+        </h1>
+        <p class="hero-subtitle">
+          {% translate "Discover verified Paying Guest accommodations, view real-time bed availability in single, double, or shared rooms, and book with zero brokerage." %}
+        </p>
+
+        {# Quick Search Widget #}
+        <form method="get" action="{% url 'discovery:pg_list' %}" class="hero-search-box">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+              <div class="search-field-wrapper">
+                <i class="bi bi-geo-alt"></i>
+                <select name="city" class="form-select search-input-custom" aria-label="Select City">
+                  <option value="">{% translate "All Cities" %}</option>
+                  <option value="Bengaluru">Bengaluru</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Delhi">Delhi NCR</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Chennai">Chennai</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="search-field-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text"
+                       name="q"
+                       class="form-control search-input-custom"
+                       placeholder="{% translate 'PG name, area, or amenities...' %}"
+                       aria-label="Search PGs">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-brand-primary w-100 py-2">
+                <i class="bi bi-search"></i>
+                <span>{% translate "Find PGs" %}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="d-flex flex-wrap gap-4 text-muted small mt-3">
+          <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-patch-check-fill text-primary fs-5"></i>
+            <span>{% translate "100% Verified PGs" %}</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-shield-check text-success fs-5"></i>
+            <span>{% translate "Zero Hidden Brokerage" %}</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+            <span>{% translate "Live Bed-Level Booking" %}</span>
+          </div>
+        </div>
+      </div>
+
+      {# Hero Image & Floating Cards #}
+      <div class="col-lg-5">
+        <div class="hero-image-container">
+          <img src="{% static 'images/hero-pg.jpg' %}"
+               alt="{% translate 'Modern Co-living PG Room' %}"
+               class="hero-main-img"
+               loading="eager" />
+
+          {# Floating badge top right #}
+          <div class="floating-stat-card floating-stat-top">
+            <div class="floating-icon bg-primary text-white">
+              <i class="bi bi-door-open-fill"></i>
+            </div>
+            <div>
+              <div class="fw-bold small text-dark">{% translate "Real-Time Availability" %}</div>
+              <div class="text-muted" style="font-size:0.75rem;">{% translate "Single, Double & Triple Beds" %}</div>
+            </div>
+          </div>
+
+          {# Floating badge bottom left #}
+          <div class="floating-stat-card floating-stat-bottom">
+            <div class="floating-icon bg-success text-white">
+              <i class="bi bi-shield-fill-check"></i>
+            </div>
+            <div>
+              <div class="fw-bold small text-dark">{% translate "Verified Owners" %}</div>
+              <div class="text-muted" style="font-size:0.75rem;">{% translate "Authentic Photos & Transparent Rent" %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 2. Popular Tech & Education Hubs ─────────────────────────────── #}
+<section class="py-5 bg-white border-bottom border-top">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+      <div>
+        <span class="section-badge">{% translate "Top Locations" %}</span>
+        <h2 class="section-heading mb-1">{% translate "Explore PGs Across Major Hubs" %}</h2>
+        <p class="text-muted mb-0">{% translate "Find modern accommodations close to IT tech parks and top universities." %}</p>
+      </div>
+      <a href="{% url 'discovery:pg_list' %}" class="btn btn-link text-decoration-none fw-semibold text-primary mt-2 mt-md-0">
+        {% translate "View All Locations" %} <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Bengaluru" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-laptop"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Bengaluru</h6>
+          <span class="badge bg-light text-muted border">{% translate "Silicon Valley" %}</span>
+        </a>
+      </div>
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Pune" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-mortarboard"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Pune</h6>
+          <span class="badge bg-light text-muted border">{% translate "Education Hub" %}</span>
+        </a>
+      </div>
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Hyderabad" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-cpu"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Hyderabad</h6>
+          <span class="badge bg-light text-muted border">{% translate "Cyberabad" %}</span>
+        </a>
+      </div>
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Delhi" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-building"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Delhi NCR</h6>
+          <span class="badge bg-light text-muted border">{% translate "Capital Region" %}</span>
+        </a>
+      </div>
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Mumbai" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-currency-rupee"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Mumbai</h6>
+          <span class="badge bg-light text-muted border">{% translate "Financial Hub" %}</span>
+        </a>
+      </div>
+      <div class="col">
+        <a href="{% url 'discovery:pg_list' %}?city=Chennai" class="city-card text-center">
+          <div class="city-icon mx-auto">
+            <i class="bi bi-briefcase"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Chennai</h6>
+          <span class="badge bg-light text-muted border">{% translate "SaaS & Tech" %}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 3. Why StayEase (Key Value Propositions) ─────────────────────── #}
+<section class="py-5" style="background-color: #f8fafc;">
+  <div class="container py-3">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <span class="section-badge">{% translate "Why StayEase" %}</span>
+      <h2 class="section-heading">{% translate "Smart Living Made Transparent & Easy" %}</h2>
+      <p class="text-muted">
+        {% translate "Say goodbye to shady brokers, hidden maintenance fees, and misleading photos. StayEase redefines how students and professionals book their stay." %}
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper bg-primary text-white">
+            <i class="bi bi-grid-3x3-gap"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Bed-Level Booking" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Unlike generic room listings, choose the specific bed (Bed A, Bed B) with clear room capacity and live vacancy tracking." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper bg-success text-white">
+            <i class="bi bi-shield-check"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "100% Verified PGs" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Every PG property is verified with authentic amenities, clear addresses, verified owners, and transparent monthly rents." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper bg-info text-white">
+            <i class="bi bi-bell-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Instant Status Updates" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Get real-time notification alerts when the owner reviews, approves, or confirms your booking request." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper bg-warning text-white">
+            <i class="bi bi-house-gear-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Owner Suite" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "PG owners get an intuitive portal to manage properties, rooms, beds, and incoming tenant requests seamlessly." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 4. How It Works (Step-by-Step Flow) ──────────────────────────── #}
+<section id="how-it-works" class="py-5 bg-white border-top">
+  <div class="container py-3">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <span class="section-badge">{% translate "Seamless Workflow" %}</span>
+      <h2 class="section-heading">{% translate "How StayEase Works in 3 Simple Steps" %}</h2>
+      <p class="text-muted">
+        {% translate "From finding your ideal accommodation to moving in, everything is seamless and digital." %}
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="step-card">
+          <span class="step-number">01</span>
+          <div class="feature-icon-wrapper bg-light text-primary mb-3">
+            <i class="bi bi-search fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Search & Filter" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Browse accommodations by city, rent budget, amenities (Wi-Fi, AC, Food), or property name." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="step-card">
+          <span class="step-number">02</span>
+          <div class="feature-icon-wrapper bg-light text-primary mb-3">
+            <i class="bi bi-door-closed fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Select Room & Bed" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Inspect room types, check remaining available beds, and pick the space that matches your lifestyle." %}
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="step-card">
+          <span class="step-number">03</span>
+          <div class="feature-icon-wrapper bg-light text-primary mb-3">
+            <i class="bi bi-check-circle fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">{% translate "Book & Move In" %}</h5>
+          <p class="text-muted small mb-0">
+            {% translate "Submit your booking request with 1-click, receive direct owner confirmation, and prepare to move in!" %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 5. Standard PG Amenities Showcase ────────────────────────────── #}
+<section id="amenities" class="py-5" style="background-color: #fdfdfd;">
+  <div class="container py-3">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="section-badge">{% translate "Comfort & Convenience" %}</span>
+        <h2 class="section-heading mb-3">{% translate "Modern Amenities for Modern Co-Living" %}</h2>
+        <p class="text-muted mb-4">
+          {% translate "Every PG listed on StayEase offers standard essentials so you can focus on your studies, career, and personal growth without worrying about daily hassles." %}
+        </p>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border shadow-sm">
+              <i class="bi bi-wifi fs-3 text-primary"></i>
+              <div>
+                <div class="fw-bold small">{% translate "High-Speed Wi-Fi" %}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{% translate "Reliable for remote work" %}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border shadow-sm">
+              <i class="bi bi-cup-hot fs-3 text-primary"></i>
+              <div>
+                <div class="fw-bold small">{% translate "Nutritious Meals" %}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{% translate "Fresh daily food options" %}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border shadow-sm">
+              <i class="bi bi-shield-lock fs-3 text-primary"></i>
+              <div>
+                <div class="fw-bold small">{% translate "24/7 CCTV & Security" %}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{% translate "Safe & gated properties" %}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border shadow-sm">
+              <i class="bi bi-battery-charging fs-3 text-primary"></i>
+              <div>
+                <div class="fw-bold small">{% translate "Power Backup" %}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{% translate "Uninterrupted electricity" %}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="p-4 bg-white rounded-4 border shadow-sm">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="avatar-circle">
+              <i class="bi bi-chat-heart"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0">{% translate "Tenant Review" %}</h5>
+              <div class="rating-stars mb-0">
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted fst-italic mb-3">
+            "{% translate "Finding a good PG in Bengaluru used to mean dealing with brokers demanding high brokerage and giving vague details. On StayEase, I found a verified 2-sharing room in HSR Layout, booked Bed A, and moved in the next week. Truly hassle-free!" %}"
+          </p>
+          <div class="d-flex justify-content-between align-items-center border-top pt-3">
+            <div>
+              <div class="fw-bold text-dark">Rohan Sharma</div>
+              <div class="text-muted small">Software Engineer, Bengaluru</div>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+              <i class="bi bi-check2-circle"></i> {% translate "Verified Resident" %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 6. For Property Owners CTA Banner ────────────────────────────── #}
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="owner-cta-banner">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+          <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill mb-3">
+            <i class="bi bi-building-add me-1"></i> {% translate "For PG Owners & Managers" %}
+          </span>
+          <h2 class="fw-bold text-white mb-3" style="font-size: 2.2rem;">
+            {% translate "Manage Your PG Properties & Fill Vacant Beds Faster" %}
+          </h2>
+          <p class="text-light opacity-75 mb-4 mb-lg-0" style="font-size: 1.05rem;">
+            {% translate "Join StayEase to list your paying guest rooms, manage bed inventories effortlessly, and receive verified booking requests from genuine students and working professionals." %}
+          </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+          <div class="d-flex flex-column flex-sm-row flex-lg-column gap-2 justify-content-lg-end">
+            {% if request.user.is_authenticated and request.user.is_owner %}
+              <a href="{% url 'properties:pg_list' %}" class="btn btn-light btn-lg fw-bold text-primary shadow">
+                <i class="bi bi-building me-1"></i> {% translate "Go to My Properties" %}
+              </a>
+              <a href="{% url 'properties:pg_create' %}" class="btn btn-outline-light btn-lg fw-bold">
+                <i class="bi bi-plus-circle me-1"></i> {% translate "Add New PG" %}
+              </a>
+            {% else %}
+              <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg fw-bold text-primary shadow">
+                <i class="bi bi-person-plus me-1"></i> {% translate "Register as Owner" %}
+              </a>
+              <a href="{% url 'account_login' %}" class="btn btn-outline-light btn-lg fw-bold">
+                <i class="bi bi-box-arrow-in-right me-1"></i> {% translate "Owner Sign In" %}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── 7. Final Call to Action ───────────────────────────────────────── #}
+<section class="py-5 bg-light text-center border-top">
+  <div class="container py-4">
+    <h2 class="section-heading mb-3">{% translate "Ready to Find Your Home Away from Home?" %}</h2>
+    <p class="text-muted max-w-700 mx-auto mb-4" style="font-size: 1.1rem;">
+      {% translate "Explore available PG rooms and beds in prime tech corridors and university campuses right now." %}
+    </p>
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+      <a href="{% url 'discovery:pg_list' %}" class="btn btn-brand-primary btn-lg px-4 py-3">
+        <i class="bi bi-search me-1"></i> {% translate "Browse Available PGs" %}
+      </a>
+      {% if not request.user.is_authenticated %}
+        <a href="{% url 'account_signup' %}" class="btn btn-brand-outline btn-lg px-4 py-3">
+          <i class="bi bi-person-plus me-1"></i> {% translate "Create Free Account" %}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock main_wrapper %}

@@ -1,7 +1,7 @@
 """
 Form tests for PG, Room, and Bed forms.
 
-Covers: valid data, invalid data, validation rules, and capacity enforcement.
+Covers: valid data, invalid data, validation rules, capacity enforcement, and bed rent validation.
 """
 
 from decimal import Decimal
@@ -30,7 +30,6 @@ class TestPGForm:
             "description": "A nice place",
             "address": "123 Street",
             "city": "Bangalore",
-            "rent_per_month": "5000.00",
             "amenities": "Wi-Fi",
         }
         defaults.update(overrides)
@@ -49,16 +48,6 @@ class TestPGForm:
         form = PGForm(data=self._valid_data(address=""))
         assert not form.is_valid()
         assert "address" in form.errors
-
-    def test_zero_rent_invalid(self):
-        form = PGForm(data=self._valid_data(rent_per_month="0"))
-        assert not form.is_valid()
-        assert "rent_per_month" in form.errors
-
-    def test_negative_rent_invalid(self):
-        form = PGForm(data=self._valid_data(rent_per_month="-100"))
-        assert not form.is_valid()
-        assert "rent_per_month" in form.errors
 
     def test_blank_description_allowed(self):
         form = PGForm(data=self._valid_data(description=""))
@@ -80,7 +69,6 @@ class TestRoomForm:
             "room_number": "101",
             "room_type": "Double",
             "capacity": "2",
-            "rent": "3000.00",
             "description": "",
         }
         defaults.update(overrides)
@@ -99,15 +87,6 @@ class TestRoomForm:
         form = RoomForm(data=self._valid_data(capacity="-1"))
         assert not form.is_valid()
 
-    def test_rent_zero_invalid(self):
-        form = RoomForm(data=self._valid_data(rent="0"))
-        assert not form.is_valid()
-        assert "rent" in form.errors
-
-    def test_rent_negative_invalid(self):
-        form = RoomForm(data=self._valid_data(rent="-500"))
-        assert not form.is_valid()
-
     def test_blank_room_type_allowed(self):
         form = RoomForm(data=self._valid_data(room_type=""))
         assert form.is_valid(), form.errors
@@ -121,32 +100,71 @@ class TestRoomForm:
 class TestBedForm:
     def test_valid_data(self):
         room = RoomFactory(capacity=3)
-        form = BedForm(data={"label": "Bed A", "is_available": True}, room=room)
+        form = BedForm(
+            data={"label": "Bed A", "rent_per_month": "3500.00", "is_available": True},
+            room=room,
+        )
         assert form.is_valid(), form.errors
 
     def test_missing_label_invalid(self):
         room = RoomFactory(capacity=3)
-        form = BedForm(data={"label": "", "is_available": True}, room=room)
+        form = BedForm(
+            data={"label": "", "rent_per_month": "3500.00", "is_available": True},
+            room=room,
+        )
         assert not form.is_valid()
         assert "label" in form.errors
+
+    def test_missing_rent_invalid(self):
+        room = RoomFactory(capacity=3)
+        form = BedForm(data={"label": "Bed A", "is_available": True}, room=room)
+        assert not form.is_valid()
+        assert "rent_per_month" in form.errors
+
+    def test_zero_rent_invalid(self):
+        room = RoomFactory(capacity=3)
+        form = BedForm(
+            data={"label": "Bed A", "rent_per_month": "0", "is_available": True},
+            room=room,
+        )
+        assert not form.is_valid()
+        assert "rent_per_month" in form.errors
+
+    def test_negative_rent_invalid(self):
+        room = RoomFactory(capacity=3)
+        form = BedForm(
+            data={"label": "Bed A", "rent_per_month": "-500", "is_available": True},
+            room=room,
+        )
+        assert not form.is_valid()
+        assert "rent_per_month" in form.errors
 
     def test_capacity_exceeded(self):
         """Cannot add a bed when room is already at capacity."""
         room = RoomFactory(capacity=1)
-        BedFactory(room=room, label="Bed A")
-        form = BedForm(data={"label": "Bed B", "is_available": True}, room=room)
+        BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"))
+        form = BedForm(
+            data={"label": "Bed B", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
         assert not form.is_valid()
 
     def test_capacity_not_exceeded(self):
         """Can add a bed when room is below capacity."""
         room = RoomFactory(capacity=2)
-        BedFactory(room=room, label="Bed A")
-        form = BedForm(data={"label": "Bed B", "is_available": True}, room=room)
+        BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"))
+        form = BedForm(
+            data={"label": "Bed B", "rent_per_month": "3200.00", "is_available": True},
+            room=room,
+        )
         assert form.is_valid(), form.errors
 
     def test_inactive_beds_not_counted_for_capacity(self):
         """Inactive beds don't count against capacity."""
         room = RoomFactory(capacity=1)
-        BedFactory(room=room, label="Bed A", is_active=False)
-        form = BedForm(data={"label": "Bed B", "is_available": True}, room=room)
+        BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"), is_active=False)
+        form = BedForm(
+            data={"label": "Bed B", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
         assert form.is_valid(), form.errors

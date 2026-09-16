@@ -25,7 +25,15 @@
           {% endif %}
         </h1>
         <p class="text-muted mb-1">{{ pg.city }} &mdash; {{ pg.address }}</p>
-        <p><strong>₹{{ pg.rent_per_month }}</strong>/{% translate "month" %}</p>
+        <p class="text-primary">
+          {% if pg.starting_rent %}
+            <strong>{% translate "Starting from" %} ₹{{ pg.starting_rent|floatformat:0 }}</strong>/{% translate "month" %}
+          {% elif pg.rent_per_month %}
+            <strong>₹{{ pg.rent_per_month|floatformat:0 }}</strong>/{% translate "month" %}
+          {% else %}
+            <span class="text-muted">{% translate "Configure beds for pricing" %}</span>
+          {% endif %}
+        </p>
       </div>
       <div>
         <a href="{% url 'properties:pg_edit' pg.pk %}" class="btn btn-outline-secondary btn-sm">
@@ -83,7 +91,20 @@
                   <span class="badge bg-secondary ms-2">
                     {{ room.beds.all|length }}/{{ room.capacity }} {% translate "beds" %}
                   </span>
-                  <span class="text-muted ms-2">₹{{ room.rent }}/{% translate "month" %}</span>
+                  {% if room.availability_status_code == 'AVAILABLE' %}
+                    <span class="badge bg-success ms-2">{% translate "Active / Available" %}</span>
+                  {% elif room.availability_status_code == 'PARTIALLY_OCCUPIED' %}
+                    <span class="badge bg-info text-dark ms-2">{% translate "Active / Partially occupied" %}</span>
+                  {% elif room.availability_status_code == 'FULL' %}
+                    <span class="badge bg-danger ms-2">{% translate "Full / Unavailable" %}</span>
+                  {% else %}
+                    <span class="badge bg-secondary ms-2">{{ room.availability_status }}</span>
+                  {% endif %}
+                  {% if room.starting_rent %}
+                    <span class="text-muted ms-2">{% translate "From" %} ₹{{ room.starting_rent|floatformat:0 }}/{% translate "month" %}</span>
+                  {% elif room.rent %}
+                    <span class="text-muted ms-2">₹{{ room.rent|floatformat:0 }}/{% translate "month" %}</span>
+                  {% endif %}
                 </span>
               </button>
             </h2>
@@ -114,6 +135,7 @@
                     <thead class="table-light">
                       <tr>
                         <th>{% translate "Label" %}</th>
+                        <th>{% translate "Rent" %}</th>
                         <th>{% translate "Available" %}</th>
                         <th>{% translate "Active" %}</th>
                         <th>{% translate "Actions" %}</th>
@@ -123,11 +145,16 @@
                       {% for bed in room.beds.all %}
                         <tr {% if not bed.is_active %}class="table-warning"{% endif %}>
                           <td>{{ bed.label }}</td>
+                          <td>₹{{ bed.rent_per_month }}/{% translate "mo" %}</td>
                           <td>
-                            {% if bed.is_available %}
-                              <span class="badge bg-success">{% translate "Yes" %}</span>
+                            {% if not bed.is_active %}
+                              <span class="badge bg-secondary">{% translate "Inactive" %}</span>
+                            {% elif bed.is_occupied %}
+                              <span class="badge bg-warning text-dark">{% translate "Occupied" %}</span>
+                            {% elif bed.is_available %}
+                              <span class="badge bg-success">{% translate "Available" %}</span>
                             {% else %}
-                              <span class="badge bg-danger">{% translate "No" %}</span>
+                              <span class="badge bg-danger">{% translate "Disabled" %}</span>
                             {% endif %}
                           </td>
                           <td>

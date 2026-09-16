@@ -45,7 +45,7 @@ class TestInitiatePayment:
 
         assert payment.pk is not None
         assert payment.booking == booking
-        assert payment.amount == booking.bed.room.rent
+        assert payment.amount == booking.bed.rent_per_month
         assert payment.status == PaymentStatus.PENDING
         assert payment.transaction_ref.startswith("TXN-")
 
