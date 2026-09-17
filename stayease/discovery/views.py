@@ -67,6 +67,7 @@ class PGDiscoveryDetailView(TenantRequiredMixin, DetailView):
     def get_queryset(self):
         return PG.objects.filter(is_active=True).prefetch_related(  # type: ignore[attr-defined]
             "rooms__beds__bookings",
+            "rooms__images",
         )
 
     def get_object(self, queryset=None):

@@ -76,9 +76,22 @@ class OwnerRequiredMixin(RoleRequiredMixin):
 
 
 class AdminRequiredMixin(RoleRequiredMixin):
-    """Only users with role=ADMIN may access this view."""
+    """Only users with role=ADMIN or superusers may access this view."""
 
     required_role = UserRole.ADMIN
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        if not (
+            getattr(request.user, "role", None) == UserRole.ADMIN
+            or getattr(request.user, "is_superuser", False)
+        ):
+            raise PermissionDenied(_MSG_ROLE_DENIED)
+
+        return super(RoleRequiredMixin, self).dispatch(request, *args, **kwargs)
+
 
 
 class ObjectOwnershipMixin:

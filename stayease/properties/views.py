@@ -14,8 +14,11 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView
@@ -23,13 +26,16 @@ from django.views.generic import DeleteView
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from django.views.generic import UpdateView
+from django.views.generic import View
 
 from stayease.properties.forms import BedForm
 from stayease.properties.forms import PGForm
 from stayease.properties.forms import RoomForm
+from stayease.properties.forms import RoomImageFormSet
 from stayease.properties.models import Bed
 from stayease.properties.models import PG
 from stayease.properties.models import Room
+from stayease.properties.models import RoomImage
 from stayease.properties.services import can_hard_delete_bed
 from stayease.properties.services import can_hard_delete_pg
 from stayease.properties.services import can_hard_delete_room
@@ -121,7 +127,7 @@ class PGDetailView(OwnerRequiredMixin, DetailView):
         ctx["rooms"] = (
             self.object.rooms
             .filter(is_active=True)
-            .prefetch_related("beds")
+            .prefetch_related("beds", "images")
             .order_by("room_number")
         )
         ctx["can_hard_delete"] = can_hard_delete_pg(self.object)
@@ -206,7 +212,7 @@ class PGDeleteView(OwnerRequiredMixin, DeleteView):
 
 
 class RoomCreateView(OwnerRequiredMixin, CreateView):
-    """Add a room to a PG."""
+    """Add a room to a PG with optional room photos (up to 3)."""
 
     model = Room
     form_class = RoomForm
@@ -216,10 +222,40 @@ class RoomCreateView(OwnerRequiredMixin, CreateView):
         self.pg = _get_owner_pg(request, self.kwargs["pg_pk"])
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["pg"] = self.pg
+        ctx["page_title"] = _("Add Room")
+        ctx["submit_label"] = _("Add Room")
+        if "image_formset" not in ctx:
+            prefix = RoomImageFormSet.get_default_prefix()
+            if self.request.POST and f"{prefix}-TOTAL_FORMS" in self.request.POST:
+                ctx["image_formset"] = RoomImageFormSet(self.request.POST, self.request.FILES)
+            else:
+                ctx["image_formset"] = RoomImageFormSet()
+        return ctx
+
     def form_valid(self, form):
-        form.instance.pg = self.pg
+        prefix = RoomImageFormSet.get_default_prefix()
+        has_formset = f"{prefix}-TOTAL_FORMS" in self.request.POST
+        image_formset = None
+
+        if has_formset:
+            image_formset = RoomImageFormSet(self.request.POST, self.request.FILES)
+            if not image_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, image_formset=image_formset)
+                )
+
+        with transaction.atomic():
+            form.instance.pg = self.pg
+            self.object = form.save()
+            if image_formset is not None:
+                image_formset.instance = self.object
+                image_formset.save()
+
         messages.success(self.request, _("Room added successfully."))
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         assert self.pg is not None
@@ -228,13 +264,6 @@ class RoomCreateView(OwnerRequiredMixin, CreateView):
             "pg_pk": self.pg.pk,
             "room_pk": self.object.pk,
         })
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["pg"] = self.pg
-        ctx["page_title"] = _("Add Room")
-        ctx["submit_label"] = _("Add Room")
-        return ctx
 
 
 class RoomDetailView(OwnerRequiredMixin, DetailView):
@@ -258,11 +287,12 @@ class RoomDetailView(OwnerRequiredMixin, DetailView):
         ctx["beds"] = self.object.beds.order_by("label")
         ctx["can_hard_delete"] = can_hard_delete_room(self.object)
         ctx["active_bed_count"] = self.object.beds.filter(is_active=True).count()
+        ctx["images"] = self.object.images.all()
         return ctx
 
 
 class RoomUpdateView(OwnerRequiredMixin, UpdateView):
-    """Edit a room."""
+    """Edit a room and manage its photos."""
 
     model = Room
     form_class = RoomForm
@@ -276,9 +306,43 @@ class RoomUpdateView(OwnerRequiredMixin, UpdateView):
     def get_queryset(self):
         return Room.objects.filter(pg=self.pg)
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["pg"] = self.pg
+        ctx["page_title"] = _("Edit Room")
+        ctx["submit_label"] = _("Save Changes")
+        if "image_formset" not in ctx:
+            prefix = RoomImageFormSet.get_default_prefix()
+            if self.request.POST and f"{prefix}-TOTAL_FORMS" in self.request.POST:
+                ctx["image_formset"] = RoomImageFormSet(
+                    self.request.POST, self.request.FILES, instance=self.object,
+                )
+            else:
+                ctx["image_formset"] = RoomImageFormSet(instance=self.object)
+        return ctx
+
     def form_valid(self, form):
+        prefix = RoomImageFormSet.get_default_prefix()
+        has_formset = f"{prefix}-TOTAL_FORMS" in self.request.POST
+        image_formset = None
+
+        if has_formset:
+            image_formset = RoomImageFormSet(
+                self.request.POST, self.request.FILES, instance=self.object,
+            )
+            if not image_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, image_formset=image_formset)
+                )
+
+        with transaction.atomic():
+            self.object = form.save()
+            if image_formset is not None:
+                image_formset.instance = self.object
+                image_formset.save()
+
         messages.success(self.request, _("Room updated successfully."))
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         assert self.pg is not None
@@ -287,13 +351,6 @@ class RoomUpdateView(OwnerRequiredMixin, UpdateView):
             "pg_pk": self.pg.pk,
             "room_pk": self.object.pk,
         })
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["pg"] = self.pg
-        ctx["page_title"] = _("Edit Room")
-        ctx["submit_label"] = _("Save Changes")
-        return ctx
 
 
 class RoomDeleteView(OwnerRequiredMixin, DeleteView):
@@ -333,6 +390,51 @@ class RoomDeleteView(OwnerRequiredMixin, DeleteView):
         ctx["pg"] = self.pg
         ctx["can_hard_delete"] = can_hard_delete_room(self.object)
         return ctx
+
+
+class RoomImageManageView(OwnerRequiredMixin, View):
+    """
+    Manage photos for a room (upload, caption, order, delete).
+    Enforces maximum 3 photos per room.
+    """
+
+    template_name = "properties/room_images.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.pg, self.room = _get_owner_room(
+            request, self.kwargs["pg_pk"], self.kwargs["room_pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        formset = RoomImageFormSet(instance=self.room)
+        return self._render(formset)
+
+    def post(self, request, *args, **kwargs):
+        formset = RoomImageFormSet(request.POST, request.FILES, instance=self.room)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, _("Room photos updated successfully."))
+            return redirect(
+                reverse(
+                    "properties:room_detail",
+                    kwargs={"pg_pk": self.pg.pk, "room_pk": self.room.pk},
+                ),
+            )
+        messages.error(request, _("Please correct the errors below."))
+        return self._render(formset)
+
+    def _render(self, formset):
+        return render(
+            self.request,
+            self.template_name,
+            {
+                "pg": self.pg,
+                "room": self.room,
+                "formset": formset,
+                "existing_images": self.room.images.all(),
+            },
+        )
 
 
 # ===========================================================================

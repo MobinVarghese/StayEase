@@ -249,7 +249,7 @@ class TestRoomUpdateView:
         data = {
             "room_number": room.room_number,
             "room_type": "Double",
-            "capacity": str(room.capacity),
+            "capacity": "2",
             "rent": str(room.rent),
             "description": "",
         }
@@ -257,6 +257,7 @@ class TestRoomUpdateView:
         assert resp.status_code == 302
         room.refresh_from_db()
         assert room.room_type == "Double"
+        assert room.capacity == 2
 
 
 # ===========================================================================

@@ -43,6 +43,11 @@ urlpatterns = [
         views.RoomDeleteView.as_view(),
         name="room_delete",
     ),
+    path(
+        "<int:pg_pk>/rooms/<int:room_pk>/images/",
+        views.RoomImageManageView.as_view(),
+        name="room_images",
+    ),
     # ------------------------------------------------------------------
     # Bed
     # ------------------------------------------------------------------

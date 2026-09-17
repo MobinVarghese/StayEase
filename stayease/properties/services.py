@@ -28,7 +28,7 @@ def check_pg_ownership(pg: PG, user) -> None:
     """
     from django.core.exceptions import PermissionDenied
 
-    if pg.owner_id != user.pk:
+    if pg.owner != user:
         raise PermissionDenied(_("You do not have permission to manage this property."))
 
 
@@ -70,6 +70,27 @@ def validate_bed_capacity(room: Room, *, exclude_bed_pk: int | None = None) -> N
         qs = qs.exclude(pk=exclude_bed_pk)
 
     current_count = qs.count()
+
+    # Enforce specific constraints based on room type
+    if room.room_type:
+        normalized_type = room.room_type.strip().lower()
+        if normalized_type == "single" and current_count >= 1:
+            raise ValidationError(
+                _(
+                    "A single room can only have 1 bed. This room already has "
+                    "%(count)d active bed(s).",
+                ),
+                params={"count": current_count},
+            )
+        if normalized_type == "double" and current_count >= 2:
+            raise ValidationError(
+                _(
+                    "A double room can only have 2 beds. This room already has "
+                    "%(count)d active bed(s).",
+                ),
+                params={"count": current_count},
+            )
+
     if current_count >= room.capacity:
         raise ValidationError(
             _(

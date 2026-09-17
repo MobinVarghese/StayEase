@@ -14,6 +14,7 @@ from factory.django import DjangoModelFactory
 from stayease.properties.models import Bed
 from stayease.properties.models import PG
 from stayease.properties.models import Room
+from stayease.properties.models import RoomImage
 from stayease.users.models import UserRole
 from stayease.users.tests.factories import UserFactory
 
@@ -35,11 +36,33 @@ class PGFactory(DjangoModelFactory):
 class RoomFactory(DjangoModelFactory):
     pg = factory.SubFactory(PGFactory)
     room_number = factory.Sequence(lambda n: f"{100 + n}")
-    room_type = "Double"
     capacity = 2
+    room_type = factory.LazyAttribute(
+        lambda o: "Single"
+        if getattr(o, "capacity", 2) == 1
+        else (
+            "Double"
+            if getattr(o, "capacity", 2) == 2
+            else (
+                "Triple"
+                if getattr(o, "capacity", 2) == 3
+                else "Dormitory"
+            )
+        ),
+    )
     rent = factory.LazyFunction(lambda: Decimal("3000.00"))
     description = ""
     is_active = True
+
+    @classmethod
+    def _adjust_kwargs(cls, **kwargs):
+        if "room_type" in kwargs and "capacity" not in kwargs:
+            rt = str(kwargs["room_type"]).strip().lower()
+            if rt == "single":
+                kwargs["capacity"] = 1
+            elif rt == "double":
+                kwargs["capacity"] = 2
+        return super()._adjust_kwargs(**kwargs)
 
     class Meta:
         model = Room
@@ -54,3 +77,14 @@ class BedFactory(DjangoModelFactory):
 
     class Meta:
         model = Bed
+
+
+class RoomImageFactory(DjangoModelFactory):
+    room = factory.SubFactory(RoomFactory)
+    image = factory.django.ImageField(color="blue")
+    caption = "Room view"
+    order = 0
+
+    class Meta:
+        model = RoomImage
+

@@ -103,6 +103,34 @@
               <p class="text-muted mb-3">{{ room_info.room.description }}</p>
             {% endif %}
 
+            {% if room_info.images %}
+              <div class="mb-4">
+                <h6 class="text-muted fw-bold mb-2">
+                  <i class="bi bi-images me-1"></i>{% translate "Room Photos" %}
+                </h6>
+                <div class="row g-2">
+                  {% for img in room_info.images %}
+                    <div class="col-6 col-md-4">
+                      <div class="card h-100 border shadow-sm overflow-hidden">
+                        <a href="{{ img.image.url }}" target="_blank" rel="noopener noreferrer" class="d-block text-decoration-none">
+                          <img src="{{ img.image.url }}"
+                               alt="{{ img.caption|default:room_info.room.room_number }}"
+                               class="img-fluid w-100"
+                               style="height: 180px; object-fit: cover;"
+                               loading="lazy">
+                        </a>
+                        {% if img.caption %}
+                          <div class="card-footer bg-light p-2 small text-muted text-truncate" title="{{ img.caption }}">
+                            {{ img.caption }}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead class="table-light">

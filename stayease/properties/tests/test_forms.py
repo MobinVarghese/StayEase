@@ -91,6 +91,51 @@ class TestRoomForm:
         form = RoomForm(data=self._valid_data(room_type=""))
         assert form.is_valid(), form.errors
 
+    def test_single_room_valid_with_capacity_1(self):
+        form = RoomForm(data=self._valid_data(room_type="Single", capacity="1"))
+        assert form.is_valid(), form.errors
+
+    def test_single_room_invalid_with_capacity_not_1(self):
+        form = RoomForm(data=self._valid_data(room_type="Single", capacity="2"))
+        assert not form.is_valid()
+        assert "capacity" in form.errors
+        assert any("1 bed" in str(err) for err in form.errors["capacity"])
+
+    def test_double_room_valid_with_capacity_2(self):
+        form = RoomForm(data=self._valid_data(room_type="Double", capacity="2"))
+        assert form.is_valid(), form.errors
+
+    def test_double_room_invalid_with_capacity_not_2(self):
+        form = RoomForm(data=self._valid_data(room_type="Double", capacity="3"))
+        assert not form.is_valid()
+        assert "capacity" in form.errors
+        assert any("2 beds" in str(err) for err in form.errors["capacity"])
+
+    def test_cannot_change_existing_room_to_single_if_multiple_active_beds(self):
+        room = RoomFactory(room_type="Double", capacity=2)
+        BedFactory(room=room, label="Bed A")
+        BedFactory(room=room, label="Bed B")
+        form = RoomForm(
+            instance=room,
+            data=self._valid_data(room_type="Single", capacity="1"),
+        )
+        assert not form.is_valid()
+        assert "room_type" in form.errors
+        assert any("already has 2 active beds" in str(err) for err in form.errors["room_type"])
+
+    def test_cannot_change_existing_room_to_double_if_more_than_two_active_beds(self):
+        room = RoomFactory(room_type="Triple", capacity=3)
+        BedFactory(room=room, label="Bed A")
+        BedFactory(room=room, label="Bed B")
+        BedFactory(room=room, label="Bed C")
+        form = RoomForm(
+            instance=room,
+            data=self._valid_data(room_type="Double", capacity="2"),
+        )
+        assert not form.is_valid()
+        assert "room_type" in form.errors
+        assert any("already has 3 active beds" in str(err) for err in form.errors["room_type"])
+
 
 # ---------------------------------------------------------------------------
 # BedForm
@@ -165,6 +210,46 @@ class TestBedForm:
         BedFactory(room=room, label="Bed A", rent_per_month=Decimal("3000.00"), is_active=False)
         form = BedForm(
             data={"label": "Bed B", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
+        assert form.is_valid(), form.errors
+
+    def test_cannot_add_second_bed_to_single_room(self):
+        """Single room strictly permits only 1 bed."""
+        room = RoomFactory(room_type="Single", capacity=1)
+        BedFactory(room=room, label="Bed 1", rent_per_month=Decimal("3000.00"))
+        form = BedForm(
+            data={"label": "Bed 2", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
+        assert not form.is_valid()
+        assert any("single room can only have 1 bed" in str(err) for err in form.non_field_errors())
+
+    def test_cannot_add_third_bed_to_double_room(self):
+        """Double room strictly permits only 2 beds."""
+        room = RoomFactory(room_type="Double", capacity=2)
+        BedFactory(room=room, label="Bed 1", rent_per_month=Decimal("3000.00"))
+        BedFactory(room=room, label="Bed 2", rent_per_month=Decimal("3000.00"))
+        form = BedForm(
+            data={"label": "Bed 3", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
+        assert not form.is_valid()
+        assert any("double room can only have 2 beds" in str(err) for err in form.non_field_errors())
+
+    def test_can_add_one_bed_to_single_room(self):
+        room = RoomFactory(room_type="Single", capacity=1)
+        form = BedForm(
+            data={"label": "Bed 1", "rent_per_month": "3000.00", "is_available": True},
+            room=room,
+        )
+        assert form.is_valid(), form.errors
+
+    def test_can_add_two_beds_to_double_room(self):
+        room = RoomFactory(room_type="Double", capacity=2)
+        BedFactory(room=room, label="Bed 1", rent_per_month=Decimal("3000.00"))
+        form = BedForm(
+            data={"label": "Bed 2", "rent_per_month": "3000.00", "is_available": True},
             room=room,
         )
         assert form.is_valid(), form.errors

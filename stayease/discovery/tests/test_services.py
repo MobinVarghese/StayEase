@@ -49,7 +49,7 @@ class TestGetActivePgsQueryset:
         BedFactory(room=room, is_available=False, is_active=True)  # not available
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 2
+        assert getattr(result, "available_bed_count") == 2
 
     def test_bed_with_active_booking_not_counted(self):
         pg = PGFactory()
@@ -60,7 +60,7 @@ class TestGetActivePgsQueryset:
         BookingFactory(bed=bed1, status=BookingStatus.PENDING)
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 1
+        assert getattr(result, "available_bed_count") == 1
 
     def test_bed_with_rejected_booking_still_counted(self):
         pg = PGFactory()
@@ -69,7 +69,7 @@ class TestGetActivePgsQueryset:
         BookingFactory(bed=bed, status=BookingStatus.REJECTED)
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 1
+        assert getattr(result, "available_bed_count") == 1
 
     def test_inactive_room_beds_not_counted(self):
         pg = PGFactory()
@@ -79,7 +79,7 @@ class TestGetActivePgsQueryset:
         BedFactory(room=inactive_room, is_available=True, is_active=True)
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 1
+        assert getattr(result, "available_bed_count") == 1
 
     def test_inactive_bed_not_counted(self):
         pg = PGFactory()
@@ -88,13 +88,13 @@ class TestGetActivePgsQueryset:
         BedFactory(room=room, is_available=True, is_active=False)  # inactive
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 1
+        assert getattr(result, "available_bed_count") == 1
 
     def test_pg_with_no_rooms_has_zero_count(self):
         pg = PGFactory()
         qs = get_active_pgs_queryset()
         result = qs.get(pk=pg.pk)
-        assert result.available_bed_count == 0
+        assert getattr(result, "available_bed_count") == 0
 
 
 # ======================================================================
@@ -116,8 +116,8 @@ class TestSearchPgs:
         assert len(result) == 2
 
     def test_keyword_search_by_name(self):
-        pg = PGFactory(name="Green Valley PG")
-        PGFactory(name="Blue Mountain PG")
+        pg = PGFactory(name="Green Valley PG", description="Standard residence")
+        PGFactory(name="Blue Mountain PG", description="Standard residence")
         result = list(search_pgs({"q": "green"}))
         assert result == [pg]
 

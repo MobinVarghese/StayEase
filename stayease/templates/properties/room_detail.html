@@ -41,7 +41,10 @@
         </p>
       </div>
       <div>
-        <a href="{% url 'properties:room_edit' pg.pk room.pk %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'properties:room_images' pg.pk room.pk %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-images me-1"></i>{% translate "Photos" %} ({{ images|length }}/3)
+        </a>
+        <a href="{% url 'properties:room_edit' pg.pk room.pk %}" class="btn btn-outline-secondary btn-sm ms-1">
           {% translate "Edit Room" %}
         </a>
         <a href="{% url 'properties:room_delete' pg.pk room.pk %}" class="btn btn-outline-danger btn-sm ms-1">
@@ -57,6 +60,53 @@
         </div>
       </div>
     {% endif %}
+
+    {# Room Photos Section #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h3 class="h5 mb-0">
+          <i class="bi bi-images text-primary me-2"></i>{% translate "Room Photos" %}
+          <span class="badge bg-secondary ms-1">{{ images|length }}/3</span>
+        </h3>
+        <a href="{% url 'properties:room_images' pg.pk room.pk %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-camera me-1"></i>
+          {% if images %}{% translate "Manage Photos" %}{% else %}{% translate "Upload Photos" %}{% endif %}
+        </a>
+      </div>
+      <div class="card-body">
+        {% if images %}
+          <div class="row g-3">
+            {% for img in images %}
+              <div class="col-6 col-md-4">
+                <div class="position-relative border rounded overflow-hidden shadow-sm">
+                  <img src="{{ img.image.url }}"
+                       alt="{{ img.caption|default:room.room_number }}"
+                       class="img-fluid w-100"
+                       style="height: 180px; object-fit: cover;">
+                  {% if img.caption %}
+                    <div class="p-2 bg-light border-top small text-truncate">
+                      {{ img.caption }}
+                    </div>
+                  {% endif %}
+                  <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75">
+                    #{{ forloop.counter }}
+                  </span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-3 text-muted">
+            <i class="bi bi-card-image fs-1 d-block text-secondary mb-2"></i>
+            <p class="mb-2">{% translate "No photos uploaded for this room yet (max 3 allowed)." %}</p>
+            <p class="small text-muted mb-3">{% translate "Uploading photos helps prospective tenants choose their stay." %}</p>
+            <a href="{% url 'properties:room_images' pg.pk room.pk %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-upload me-1"></i> {% translate "Upload Photos" %}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
 
     {# Beds Section #}
     <div class="d-flex justify-content-between align-items-center mb-3">

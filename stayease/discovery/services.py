@@ -140,6 +140,7 @@ def get_pg_detail(pg_pk: int) -> PG | None:
             .prefetch_related(
                 "rooms__beds",
                 "rooms__beds__bookings",
+                "rooms__images",
             )
             .first()
         )
@@ -215,6 +216,7 @@ def get_rooms_with_availability(pg: PG) -> list[dict]:
         rooms_data.append({
             "room": room,
             "beds": beds_info,
+            "images": list(room.images.all()),
             "available_count": available,
             "total_active_count": total_active,
             "starting_rent": room_starting_rent,

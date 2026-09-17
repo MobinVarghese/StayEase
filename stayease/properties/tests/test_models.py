@@ -5,8 +5,10 @@ Covers: relationships, unique constraints, __str__, and field defaults.
 """
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
+from stayease.properties.models import Bed, PG, Room
 from stayease.properties.tests.factories import BedFactory
 from stayease.properties.tests.factories import PGFactory
 from stayease.properties.tests.factories import RoomFactory
@@ -77,6 +79,43 @@ class TestRoomModel:
         room = RoomFactory()
         assert room.is_active is True
 
+    def test_clean_single_room_capacity_1_valid(self):
+        pg = PGFactory()
+        room = Room(pg=pg, room_number="101", room_type="Single", capacity=1)
+        room.clean()  # Should not raise
+
+    def test_clean_single_room_capacity_not_1_raises(self):
+        pg = PGFactory()
+        room = Room(pg=pg, room_number="101", room_type="Single", capacity=2)
+        with pytest.raises(ValidationError) as exc_info:
+            room.clean()
+        assert "capacity" in exc_info.value.message_dict
+        assert any("1 bed" in msg for msg in exc_info.value.message_dict["capacity"])
+
+    def test_clean_double_room_capacity_2_valid(self):
+        pg = PGFactory()
+        room = Room(pg=pg, room_number="101", room_type="Double", capacity=2)
+        room.clean()  # Should not raise
+
+    def test_clean_double_room_capacity_not_2_raises(self):
+        pg = PGFactory()
+        room = Room(pg=pg, room_number="101", room_type="Double", capacity=3)
+        with pytest.raises(ValidationError) as exc_info:
+            room.clean()
+        assert "capacity" in exc_info.value.message_dict
+        assert any("2 beds" in msg for msg in exc_info.value.message_dict["capacity"])
+
+    def test_clean_cannot_change_existing_room_to_single_if_multiple_beds(self):
+        room = RoomFactory(room_type="Double", capacity=2)
+        BedFactory(room=room, label="Bed 1")
+        BedFactory(room=room, label="Bed 2")
+        room.room_type = "Single"
+        room.capacity = 1
+        with pytest.raises(ValidationError) as exc_info:
+            room.clean()
+        assert "room_type" in exc_info.value.message_dict
+        assert any("already has 2 active beds" in msg for msg in exc_info.value.message_dict["room_type"])
+
 
 # ---------------------------------------------------------------------------
 # Bed
@@ -115,6 +154,23 @@ class TestBedModel:
     def test_is_active_default_true(self):
         bed = BedFactory()
         assert bed.is_active is True
+
+    def test_clean_cannot_add_second_bed_to_single_room(self):
+        room = RoomFactory(room_type="Single", capacity=1)
+        BedFactory(room=room, label="Bed 1")
+        bed2 = Bed(room=room, label="Bed 2", is_active=True)
+        with pytest.raises(ValidationError) as exc_info:
+            bed2.clean()
+        assert any("single room can only have 1 bed" in err for err in exc_info.value.messages)
+
+    def test_clean_cannot_add_third_bed_to_double_room(self):
+        room = RoomFactory(room_type="Double", capacity=2)
+        BedFactory(room=room, label="Bed 1")
+        BedFactory(room=room, label="Bed 2")
+        bed3 = Bed(room=room, label="Bed 3", is_active=True)
+        with pytest.raises(ValidationError) as exc_info:
+            bed3.clean()
+        assert any("double room can only have 2 beds" in err for err in exc_info.value.messages)
 
 
 # ---------------------------------------------------------------------------

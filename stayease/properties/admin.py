@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import PG
 from .models import Bed
 from .models import Room
+from .models import RoomImage
 
 
 class RoomInline(admin.TabularInline):
@@ -16,6 +17,13 @@ class BedInline(admin.TabularInline):
     model = Bed
     extra = 0
     fields = ["label", "rent_per_month", "is_available", "is_active"]
+
+
+class RoomImageInline(admin.TabularInline):
+    model = RoomImage
+    extra = 0
+    max_num = 3
+    fields = ["image", "caption", "order"]
 
 
 @admin.register(PG)
@@ -50,12 +58,19 @@ class RoomAdmin(admin.ModelAdmin):
     ]
     list_filter = ["is_active", "room_type"]
     search_fields = ["room_number", "pg__name"]
-    inlines = [BedInline]
+    inlines = [BedInline, RoomImageInline]
 
     @admin.display(description="Starting Rent")
     def starting_rent_display(self, obj: Room) -> str:
         rent = obj.starting_rent
         return f"₹{rent}" if rent is not None else "—"
+
+
+@admin.register(RoomImage)
+class RoomImageAdmin(admin.ModelAdmin):
+    list_display = ["room", "caption", "order", "uploaded_at"]
+    list_filter = ["room__pg"]
+    search_fields = ["room__room_number", "room__pg__name", "caption"]
 
 
 @admin.register(Bed)

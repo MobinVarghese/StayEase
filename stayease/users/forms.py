@@ -1,3 +1,4 @@
+from allauth.account.forms import LoginForm as AllauthLoginForm
 from allauth.account.forms import SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
 from django import forms
@@ -235,4 +236,112 @@ class UserProfileForm(forms.ModelForm):
 
     def clean_phone_number(self):
         return validate_and_clean_phone_number(self.cleaned_data.get("phone_number", ""))
+
+
+class ForgotPasswordRequestForm(forms.Form):
+    """
+    Form for users to request an administrator-mediated password reset.
+    """
+
+    email = forms.EmailField(
+        label=_("Email address"),
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": _("name@example.com"),
+                "autocomplete": "email",
+            },
+        ),
+    )
+    reason = forms.CharField(
+        label=_("Reason (optional)"),
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": _("Optional: describe why you need an administrator password reset"),
+            },
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.matched_user: User | None = None
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            raise forms.ValidationError(_("Please enter your registered email address."))
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            raise forms.ValidationError(
+                _("No account found with this email address. Please check and try again."),
+            )
+
+        if not user.is_active:
+            raise forms.ValidationError(
+                _("This account is currently inactive. Please contact support."),
+            )
+
+        from .models import PasswordResetRequest
+        from .models import ResetRequestStatus
+
+        if PasswordResetRequest.objects.filter(
+            user=user,
+            status=ResetRequestStatus.PENDING,
+        ).exists():
+            raise forms.ValidationError(
+                _(
+                    "A password reset request is already pending review for this account. "
+                    "Please wait for an administrator to process it."
+                ),
+            )
+
+        self.matched_user = user
+        return email
+
+
+class UserChangePasswordForm(admin_forms.PasswordChangeForm):
+    """
+    Change-password form for authenticated users with styled Bootstrap 5 widgets.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+
+class UserLoginForm(AllauthLoginForm):
+    """
+    Custom login form allowing users to sign in using either their email
+    or username (such as 'admin').
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["login"] = forms.CharField(
+            label=_("Email or Username"),
+            widget=forms.TextInput(
+                attrs={
+                    "placeholder": _("Enter your email or username"),
+                    "autocomplete": "username",
+                }
+            ),
+        )
+
+    def user_credentials(self) -> dict:
+        credentials = super().user_credentials()
+        login_val = credentials.get("email") or credentials.get("username")
+        if login_val and login_val.strip().lower() == "admin":
+            admin_user = User.objects.filter(
+                email__in=["admin", "admin@stayease.com", "admin@admin.com"],
+            ).first()
+            if admin_user:
+                credentials["email"] = admin_user.email
+        return credentials
+
+
 

@@ -2,6 +2,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -22,6 +23,8 @@ class PG(models.Model):
         help_text=_("The owner who manages this PG property."),
     )
     name = models.CharField(_("name"), max_length=255)
+    # Dynamic queryset annotation (e.g. from discovery.services.get_active_pgs_queryset)
+    available_bed_count: int
     description = models.TextField(_("description"), blank=True)
     address = models.TextField(_("address"))
     city = models.CharField(_("city"), max_length=100)
@@ -158,6 +161,46 @@ class Room(models.Model):
 
     def __str__(self):
         return f"{self.pg.name} - Room {self.room_number}"
+
+    def clean(self):
+        super().clean()
+        if self.capacity is not None and self.capacity < 1:
+            raise ValidationError({"capacity": _("Capacity must be at least 1.")})
+
+        if self.room_type:
+            rt = self.room_type.strip().lower()
+            if rt == "single":
+                if self.capacity is not None and self.capacity != 1:
+                    raise ValidationError(
+                        {"capacity": _("A single room can only have 1 bed (capacity must be 1).")},
+                    )
+                if self.pk:
+                    active_beds = self.beds.filter(is_active=True).count()
+                    if active_beds > 1:
+                        raise ValidationError(
+                            {
+                                "room_type": _(
+                                    "Cannot set room type to Single because this room already has %(count)d active beds. A single room can only have 1 bed.",
+                                )
+                                % {"count": active_beds},
+                            },
+                        )
+            elif rt == "double":
+                if self.capacity is not None and self.capacity != 2:
+                    raise ValidationError(
+                        {"capacity": _("A double room can only have 2 beds (capacity must be 2).")},
+                    )
+                if self.pk:
+                    active_beds = self.beds.filter(is_active=True).count()
+                    if active_beds > 2:
+                        raise ValidationError(
+                            {
+                                "room_type": _(
+                                    "Cannot set room type to Double because this room already has %(count)d active beds. A double room can only have 2 beds.",
+                                )
+                                % {"count": active_beds},
+                            },
+                        )
 
     def get_availability_stats(self) -> dict[str, Any]:
         """
@@ -324,6 +367,13 @@ class Bed(models.Model):
     def __str__(self):
         return f"{self.room} - {self.label} (₹{self.rent_per_month}/mo)"
 
+    def clean(self):
+        super().clean()
+        if self.room_id and self.is_active:
+            from stayease.properties.services import validate_bed_capacity
+
+            validate_bed_capacity(self.room, exclude_bed_pk=self.pk)
+
     @property
     def is_occupied(self) -> bool:
         """Return True if this bed has an active booking."""
@@ -348,3 +398,56 @@ class Bed(models.Model):
         if self.is_occupied:
             return "Occupied"
         return "Available"
+
+
+class RoomImage(models.Model):
+    """
+    A photo of a room uploaded by the PG owner.
+
+    Maximum 3 photos per room are allowed. These photos are visible to tenants
+    browsing rooms on the discovery pages.
+
+    Relationship: Room 1──N RoomImage (max 3)
+    """
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name=_("room"),
+    )
+    image = models.ImageField(
+        _("image"),
+        upload_to="rooms/%Y/%m/",
+        help_text=_("Room photo (JPEG/PNG/WebP, max 3 per room)."),
+    )
+    caption = models.CharField(
+        _("caption"),
+        max_length=120,
+        blank=True,
+        help_text=_("Optional short caption for this photo."),
+    )
+    order = models.PositiveSmallIntegerField(
+        _("display order"),
+        default=0,
+        help_text=_("Order in which this image is displayed."),
+    )
+    uploaded_at = models.DateTimeField(_("uploaded at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Room Image")
+        verbose_name_plural = _("Room Images")
+        ordering = ["order", "uploaded_at"]
+
+    def __str__(self):
+        return f"Image for {self.room} (ID: {self.pk or 'new'})"
+
+    def clean(self):
+        super().clean()
+        if not self.pk and self.room_id:
+            existing_count = self.room.images.count()
+            if existing_count >= 3:
+                raise ValidationError(
+                    _("A maximum of 3 photos can be uploaded for a room."),
+                )
+
