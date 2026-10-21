@@ -14,8 +14,11 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView
@@ -23,13 +26,16 @@ from django.views.generic import DeleteView
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from django.views.generic import UpdateView
+from django.views.generic import View
 
 from stayease.properties.forms import BedForm
 from stayease.properties.forms import PGForm
 from stayease.properties.forms import RoomForm
+from stayease.properties.forms import RoomImageFormSet
 from stayease.properties.models import Bed
 from stayease.properties.models import PG
 from stayease.properties.models import Room
+from stayease.properties.models import RoomImage
 from stayease.properties.services import can_hard_delete_bed
 from stayease.properties.services import can_hard_delete_pg
 from stayease.properties.services import can_hard_delete_room
@@ -43,7 +49,7 @@ from stayease.users.mixins import OwnerRequiredMixin
 def _get_owner_pg(request, pg_pk):
     """Return PG owned by the current user or raise 403."""
     pg = get_object_or_404(PG, pk=pg_pk)
-    if pg.owner_id != request.user.pk:
+    if pg.owner != request.user:
         raise PermissionDenied(_("You do not have permission to manage this property."))
     return pg
 
@@ -92,6 +98,7 @@ class PGCreateView(OwnerRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.object is not None
         return reverse("properties:pg_detail", kwargs={"pg_pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -120,7 +127,7 @@ class PGDetailView(OwnerRequiredMixin, DetailView):
         ctx["rooms"] = (
             self.object.rooms
             .filter(is_active=True)
-            .prefetch_related("beds")
+            .prefetch_related("beds", "images")
             .order_by("room_number")
         )
         ctx["can_hard_delete"] = can_hard_delete_pg(self.object)
@@ -146,6 +153,7 @@ class PGUpdateView(OwnerRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
+        assert self.object is not None
         return reverse("properties:pg_detail", kwargs={"pg_pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -175,17 +183,16 @@ class PGDeleteView(OwnerRequiredMixin, DeleteView):
             raise PermissionDenied(_("You do not have permission to delete this property."))
         return pg
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        pg = self.object
+    def form_valid(self, form):
+        pg = self.get_object()
         if can_hard_delete_pg(pg):
             pg.delete()
-            messages.success(request, _("PG \"%(name)s\" has been permanently deleted.") % {"name": pg.name})
+            messages.success(self.request, _("PG \"%(name)s\" has been permanently deleted.") % {"name": pg.name})
         else:
             pg.is_active = False
             pg.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("PG \"%(name)s\" has been deactivated (booking history preserved).") % {"name": pg.name},
             )
         return redirect(self.get_success_url())
@@ -205,7 +212,7 @@ class PGDeleteView(OwnerRequiredMixin, DeleteView):
 
 
 class RoomCreateView(OwnerRequiredMixin, CreateView):
-    """Add a room to a PG."""
+    """Add a room to a PG with optional room photos (up to 3)."""
 
     model = Room
     form_class = RoomForm
@@ -215,23 +222,48 @@ class RoomCreateView(OwnerRequiredMixin, CreateView):
         self.pg = _get_owner_pg(request, self.kwargs["pg_pk"])
         return super().dispatch(request, *args, **kwargs)
 
-    def form_valid(self, form):
-        form.instance.pg = self.pg
-        messages.success(self.request, _("Room added successfully."))
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse("properties:room_detail", kwargs={
-            "pg_pk": self.pg.pk,
-            "room_pk": self.object.pk,
-        })
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
         ctx["page_title"] = _("Add Room")
         ctx["submit_label"] = _("Add Room")
+        if "image_formset" not in ctx:
+            prefix = RoomImageFormSet.get_default_prefix()
+            if self.request.POST and f"{prefix}-TOTAL_FORMS" in self.request.POST:
+                ctx["image_formset"] = RoomImageFormSet(self.request.POST, self.request.FILES)
+            else:
+                ctx["image_formset"] = RoomImageFormSet()
         return ctx
+
+    def form_valid(self, form):
+        prefix = RoomImageFormSet.get_default_prefix()
+        has_formset = f"{prefix}-TOTAL_FORMS" in self.request.POST
+        image_formset = None
+
+        if has_formset:
+            image_formset = RoomImageFormSet(self.request.POST, self.request.FILES)
+            if not image_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, image_formset=image_formset)
+                )
+
+        with transaction.atomic():
+            form.instance.pg = self.pg
+            self.object = form.save()
+            if image_formset is not None:
+                image_formset.instance = self.object
+                image_formset.save()
+
+        messages.success(self.request, _("Room added successfully."))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        assert self.pg is not None
+        assert self.object is not None
+        return reverse("properties:room_detail", kwargs={
+            "pg_pk": self.pg.pk,
+            "room_pk": self.object.pk,
+        })
 
 
 class RoomDetailView(OwnerRequiredMixin, DetailView):
@@ -252,14 +284,15 @@ class RoomDetailView(OwnerRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
-        ctx["beds"] = self.object.beds.order_by("label")
+        ctx["beds"] = self.object.beds.prefetch_related("bookings__tenant").order_by("label")
         ctx["can_hard_delete"] = can_hard_delete_room(self.object)
         ctx["active_bed_count"] = self.object.beds.filter(is_active=True).count()
+        ctx["images"] = self.object.images.all()
         return ctx
 
 
 class RoomUpdateView(OwnerRequiredMixin, UpdateView):
-    """Edit a room."""
+    """Edit a room and manage its photos."""
 
     model = Room
     form_class = RoomForm
@@ -273,22 +306,51 @@ class RoomUpdateView(OwnerRequiredMixin, UpdateView):
     def get_queryset(self):
         return Room.objects.filter(pg=self.pg)
 
-    def form_valid(self, form):
-        messages.success(self.request, _("Room updated successfully."))
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return reverse("properties:room_detail", kwargs={
-            "pg_pk": self.pg.pk,
-            "room_pk": self.object.pk,
-        })
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
         ctx["page_title"] = _("Edit Room")
         ctx["submit_label"] = _("Save Changes")
+        if "image_formset" not in ctx:
+            prefix = RoomImageFormSet.get_default_prefix()
+            if self.request.POST and f"{prefix}-TOTAL_FORMS" in self.request.POST:
+                ctx["image_formset"] = RoomImageFormSet(
+                    self.request.POST, self.request.FILES, instance=self.object,
+                )
+            else:
+                ctx["image_formset"] = RoomImageFormSet(instance=self.object)
         return ctx
+
+    def form_valid(self, form):
+        prefix = RoomImageFormSet.get_default_prefix()
+        has_formset = f"{prefix}-TOTAL_FORMS" in self.request.POST
+        image_formset = None
+
+        if has_formset:
+            image_formset = RoomImageFormSet(
+                self.request.POST, self.request.FILES, instance=self.object,
+            )
+            if not image_formset.is_valid():
+                return self.render_to_response(
+                    self.get_context_data(form=form, image_formset=image_formset)
+                )
+
+        with transaction.atomic():
+            self.object = form.save()
+            if image_formset is not None:
+                image_formset.instance = self.object
+                image_formset.save()
+
+        messages.success(self.request, _("Room updated successfully."))
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        assert self.pg is not None
+        assert self.object is not None
+        return reverse("properties:room_detail", kwargs={
+            "pg_pk": self.pg.pk,
+            "room_pk": self.object.pk,
+        })
 
 
 class RoomDeleteView(OwnerRequiredMixin, DeleteView):
@@ -306,16 +368,16 @@ class RoomDeleteView(OwnerRequiredMixin, DeleteView):
     def get_queryset(self):
         return Room.objects.filter(pg=self.pg)
 
-    def form_valid(self, request, *args, **kwargs):
+    def form_valid(self, form):
         room = self.get_object()
         if can_hard_delete_room(room):
             room.delete()
-            messages.success(request, _("Room \"%(num)s\" has been permanently deleted.") % {"num": room.room_number})
+            messages.success(self.request, _("Room \"%(num)s\" has been permanently deleted.") % {"num": room.room_number})
         else:
             room.is_active = False
             room.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("Room \"%(num)s\" has been deactivated (booking history preserved).") % {"num": room.room_number},
             )
         return redirect(self.get_success_url())
@@ -328,6 +390,51 @@ class RoomDeleteView(OwnerRequiredMixin, DeleteView):
         ctx["pg"] = self.pg
         ctx["can_hard_delete"] = can_hard_delete_room(self.object)
         return ctx
+
+
+class RoomImageManageView(OwnerRequiredMixin, View):
+    """
+    Manage photos for a room (upload, caption, order, delete).
+    Enforces maximum 3 photos per room.
+    """
+
+    template_name = "properties/room_images.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.pg, self.room = _get_owner_room(
+            request, self.kwargs["pg_pk"], self.kwargs["room_pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        formset = RoomImageFormSet(instance=self.room)
+        return self._render(formset)
+
+    def post(self, request, *args, **kwargs):
+        formset = RoomImageFormSet(request.POST, request.FILES, instance=self.room)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, _("Room photos updated successfully."))
+            return redirect(
+                reverse(
+                    "properties:room_detail",
+                    kwargs={"pg_pk": self.pg.pk, "room_pk": self.room.pk},
+                ),
+            )
+        messages.error(request, _("Please correct the errors below."))
+        return self._render(formset)
+
+    def _render(self, formset):
+        return render(
+            self.request,
+            self.template_name,
+            {
+                "pg": self.pg,
+                "room": self.room,
+                "formset": formset,
+                "existing_images": self.room.images.all(),
+            },
+        )
 
 
 # ===========================================================================
@@ -409,6 +516,7 @@ class BedUpdateView(OwnerRequiredMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
         ctx["room"] = self.room
+        ctx["bed"] = self.object
         ctx["page_title"] = _("Edit Bed")
         ctx["submit_label"] = _("Save Changes")
         return ctx
@@ -431,16 +539,16 @@ class BedDeleteView(OwnerRequiredMixin, DeleteView):
     def get_queryset(self):
         return Bed.objects.filter(room=self.room)
 
-    def form_valid(self, request, *args, **kwargs):
+    def form_valid(self, form):
         bed = self.get_object()
         if can_hard_delete_bed(bed):
             bed.delete()
-            messages.success(request, _("Bed \"%(label)s\" has been permanently deleted.") % {"label": bed.label})
+            messages.success(self.request, _("Bed \"%(label)s\" has been permanently deleted.") % {"label": bed.label})
         else:
             bed.is_active = False
             bed.save(update_fields=["is_active", "updated_at"])
             messages.success(
-                request,
+                self.request,
                 _("Bed \"%(label)s\" has been deactivated (booking history preserved).") % {"label": bed.label},
             )
         return redirect(self.get_success_url())

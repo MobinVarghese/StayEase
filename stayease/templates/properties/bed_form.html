@@ -27,6 +27,20 @@
       <div class="col-lg-6">
         <div class="card shadow-sm">
           <div class="card-body">
+            {% if bed and bed.is_occupied and bed.active_booking %}
+              <div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-info-circle-fill fs-5"></i>
+                <div>
+                  <strong>{% translate "This bed is currently occupied." %}</strong>
+                  {% translate "Active booking #" %}{{ bed.active_booking.pk }} ({{ bed.active_booking.tenant.name|default:bed.active_booking.tenant.email }}).
+                  {% if bed.active_booking.status == "CONFIRMED" %}
+                    {% translate "To make this bed available for new bookings, please" %}
+                    <a href="{% url 'bookings:booking_detail' pk=bed.active_booking.pk %}" class="alert-link fw-semibold">{% translate "check out the tenant" %}</a>.
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
             <form method="post" novalidate>
               {% csrf_token %}
               {{ form|crispy }}

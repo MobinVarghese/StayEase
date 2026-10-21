@@ -35,8 +35,14 @@
                 <p class="card-text text-muted mb-1">
                   <small>{{ pg.city }} &mdash; {{ pg.address|truncatewords:10 }}</small>
                 </p>
-                <p class="card-text">
-                  <strong>₹{{ pg.rent_per_month }}/{% translate "month" %}</strong>
+                <p class="card-text text-primary">
+                  {% if pg.starting_rent %}
+                    <strong>{% translate "Starting from" %} ₹{{ pg.starting_rent|floatformat:0 }}/{% translate "month" %}</strong>
+                  {% elif pg.rent_per_month %}
+                    <strong>₹{{ pg.rent_per_month|floatformat:0 }}/{% translate "month" %}</strong>
+                  {% else %}
+                    <span class="text-muted">{% translate "Configure beds for pricing" %}</span>
+                  {% endif %}
                 </p>
                 {% if pg.amenities %}
                   <p class="card-text"><small class="text-muted">{{ pg.amenities|truncatewords:8 }}</small></p>

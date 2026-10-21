@@ -2,6 +2,7 @@
 from typing import ClassVar
 
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import CharField
 from django.db.models import EmailField
@@ -31,12 +32,22 @@ class User(AbstractUser):
     check forms.SignupForm and forms.SocialSignupForms accordingly.
     """
 
-    # First and last name do not cover name patterns around the globe
-    name = CharField(_("Name of User"), blank=True, max_length=255)
-    first_name = None  # type: ignore[assignment]
-    last_name = None  # type: ignore[assignment]
+    first_name = CharField(_("first name"), max_length=150, blank=False)
+    last_name = CharField(_("last name"), max_length=150, blank=False)
     email = EmailField(_("email address"), unique=True)
     username = None  # type: ignore[assignment]
+    phone_number = CharField(
+        _("phone number"),
+        max_length=10,
+        blank=False,
+        validators=[
+            RegexValidator(
+                regex=r"^\d{10}$",
+                message=_("Phone number must be exactly 10 digits."),
+            ),
+        ],
+        help_text=_("10-digit contact phone number."),
+    )
     role = CharField(
         _("role"),
         max_length=20,
@@ -53,9 +64,13 @@ class User(AbstractUser):
     objects: ClassVar[UserManager] = UserManager()
 
     # ------------------------------------------------------------------
-    # Convenience role-check properties
-    # Other members should use these instead of comparing strings.
+    # Convenience helpers
     # ------------------------------------------------------------------
+
+    @property
+    def name(self) -> str:
+        """Full name — combines first and last for template/display use."""
+        return f"{self.first_name} {self.last_name}".strip()
 
     @property
     def is_tenant(self) -> bool:
@@ -78,3 +93,112 @@ class User(AbstractUser):
 
         """
         return reverse("users:detail", kwargs={"pk": self.id})
+
+
+# ---------------------------------------------------------------------------
+# Password-reset workflow models
+# ---------------------------------------------------------------------------
+
+
+class ResetRequestStatus(models.TextChoices):
+    """
+    Lifecycle states for an admin-mediated password-reset request.
+
+    Allowed transitions (enforced in the admin actions):
+        pending  → approved
+        pending  → rejected
+    Once approved or rejected a request cannot be changed again.
+    """
+
+    PENDING = "pending", _("Pending")
+    APPROVED = "approved", _("Approved")
+    REJECTED = "rejected", _("Rejected")
+
+
+class PasswordResetRequest(models.Model):
+    """
+    Represents a user's request for an administrator to reset their password.
+
+    Workflow
+    --------
+    1. User submits the /forgot-password/ form → record created with status=PENDING.
+    2. An admin reviews the request from the admin interface.
+    3. On approval, the admin sets a cryptographically secure temporary password,
+       calls ``user.set_password(temporary_password)``, and stores it in ``new_password``
+       so it can be communicated to the user out-of-band.
+    4. The user logs in with the temporary password and changes it via profile settings.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="password_reset_requests",
+        verbose_name=_("user"),
+    )
+    email = models.EmailField(_("email address"))
+    reason = models.TextField(
+        _("reason"),
+        blank=True,
+        null=True,
+        help_text=_("Optional note from the user explaining why they need a reset."),
+    )
+    status = models.CharField(
+        _("status"),
+        max_length=20,
+        choices=ResetRequestStatus.choices,
+        default=ResetRequestStatus.PENDING,
+        db_index=True,
+    )
+    admin_notes = models.TextField(
+        _("admin notes"),
+        blank=True,
+        null=True,
+        help_text=_("Optional notes recorded by the administrator."),
+    )
+    processed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="processed_reset_requests",
+        verbose_name=_("processed by"),
+    )
+    # Stores the plain-text temporary password ONLY so the admin can read and
+    # communicate it. The actual User.password column stores the secure hash.
+    new_password = models.CharField(
+        _("temporary password"),
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_(
+            "Plain-text temporary password set by admin on approval. "
+            "Share with the user out-of-band."
+        ),
+    )
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    processed_at = models.DateTimeField(_("processed at"), null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("Password Reset Request")
+        verbose_name_plural = _("Password Reset Requests")
+
+    def __str__(self) -> str:
+        return f"{self.user.email} - {self.status} - {self.created_at}"
+
+    @property
+    def is_pending(self) -> bool:
+        return self.status == ResetRequestStatus.PENDING
+
+    @property
+    def is_approved(self) -> bool:
+        return self.status == ResetRequestStatus.APPROVED
+
+    @property
+    def is_rejected(self) -> bool:
+        return self.status == ResetRequestStatus.REJECTED
+
+    @property
+    def temp_password(self) -> str | None:
+        """Alias for new_password for convenience."""
+        return self.new_password

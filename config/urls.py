@@ -6,12 +6,52 @@ from django.urls import path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 
+from stayease.discovery.views import HomeView
+
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
+    path("", HomeView.as_view(), name="home"),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),
         name="about",
+    ),
+    # Password reset & recovery workflow (admin-mediated)
+    path(
+        "forgot-password/",
+        include(
+            [
+                path(
+                    "",
+                    __import__("stayease.users.views", fromlist=["forgot_password"]).forgot_password,
+                    name="forgot_password",
+                ),
+                path(
+                    "done/",
+                    __import__("stayease.users.views", fromlist=["forgot_password_done"]).forgot_password_done,
+                    name="forgot_password_done",
+                ),
+            ]
+        ),
+    ),
+    path(
+        "admin/reset/<int:request_id>/approve/",
+        __import__("stayease.users.views", fromlist=["approve_password_reset"]).approve_password_reset,
+        name="approve_password_reset",
+    ),
+    path(
+        "admin/reset/<int:request_id>/reject/",
+        __import__("stayease.users.views", fromlist=["reject_password_reset"]).reject_password_reset,
+        name="reject_password_reset",
+    ),
+    path(
+        "profile/change-password/",
+        __import__("stayease.users.views", fromlist=["user_change_password_view"]).user_change_password_view,
+        name="change_password",
+    ),
+    path(
+        "admin-dashboard/",
+        __import__("stayease.users.views", fromlist=["admin_dashboard_view"]).admin_dashboard_view,
+        name="admin_dashboard",
     ),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),

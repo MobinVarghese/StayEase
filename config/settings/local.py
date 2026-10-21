@@ -27,11 +27,29 @@ CACHES = {
 
 # EMAIL
 # ------------------------------------------------------------------------------
+# Use SMTP backend when credentials are configured; fall back to console.
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND",
-    default="django.core.mail.backends.console.EmailBackend",
-)
+_email_host_user = env("EMAIL_HOST_USER", default="")
+_email_host_password = env("EMAIL_HOST_PASSWORD", default="")
+
+if _email_host_user and _email_host_password:
+    EMAIL_BACKEND = env(
+        "DJANGO_EMAIL_BACKEND",
+        default="django.core.mail.backends.smtp.EmailBackend",
+    )
+    EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+    EMAIL_HOST_USER = _email_host_user
+    EMAIL_HOST_PASSWORD = _email_host_password
+else:
+    import logging as _logging
+
+    _logging.getLogger(__name__).info(
+        "EMAIL_HOST_USER/EMAIL_HOST_PASSWORD not configured — "
+        "using console email backend. Emails will be printed to stdout."
+    )
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # WhiteNoise
 # ------------------------------------------------------------------------------
@@ -39,29 +57,12 @@ EMAIL_BACKEND = env(
 INSTALLED_APPS = ["whitenoise.runserver_nostatic", *INSTALLED_APPS]
 
 
-# django-debug-toolbar
+# django-debug-toolbar (disabled as requested)
 # ------------------------------------------------------------------------------
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#prerequisites
-INSTALLED_APPS += ["debug_toolbar"]
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#middleware
-MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
-# https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
-DEBUG_TOOLBAR_CONFIG = {
-    "DISABLE_PANELS": [
-        "debug_toolbar.panels.redirects.RedirectsPanel",
-        # Disable profiling panel due to an issue with Python 3.12+:
-        # https://github.com/jazzband/django-debug-toolbar/issues/1875
-        "debug_toolbar.panels.profiling.ProfilingPanel",
-    ],
-    "SHOW_TEMPLATE_CONTEXT": True,
-}
-# https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#internal-ips
-INTERNAL_IPS = ["127.0.0.1", "10.0.2.2"]
-if env("USE_DOCKER") == "yes":
-    import socket
+# To re-enable the debug toolbar, uncomment the lines below:
+# INSTALLED_APPS += ["debug_toolbar"]
+# MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-    INTERNAL_IPS += [".".join([*ip.split(".")[:-1], "1"]) for ip in ips]
 
 # django-extensions
 # ------------------------------------------------------------------------------

@@ -1,0 +1,30 @@
+{% load i18n %}{% autoescape off %}Dear {{ tenant_name }},
+
+Congratulations! Your booking at {{ pg.name }} has been successfully confirmed.
+
+--- BOOKING DETAILS ---
+Booking Reference: #{{ booking.id }}
+Property: {{ pg.name }}
+Location: {{ pg.address }}, {{ pg.city }}
+Room: {{ booking.bed.room.room_number }} (Floor {{ booking.bed.room.floor }})
+Bed: {{ booking.bed.label }}
+Monthly Rent: ₹{{ booking.bed.rent_per_month }}
+Status: Confirmed
+
+--- PAYMENT DETAILS ---
+Amount Paid: ₹{{ payment_amount }}
+Payment Status: Successful
+{% if transaction_ref %}Transaction Ref: {{ transaction_ref }}{% endif %}
+
+--- PG OWNER CONTACT ---
+Owner: {{ owner_name }}
+{% if owner_phone %}Phone: {{ owner_phone }}{% endif %}
+Email: {{ owner_email }}
+
+View your booking details on StayEase:
+{{ booking_url }}
+
+Thank you for choosing StayEase!
+The StayEase Team
+support@stayease.in
+{% endautoescape %}

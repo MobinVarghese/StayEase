@@ -10,7 +10,9 @@ from stayease.users.models import UserRole
 
 class UserFactory(DjangoModelFactory[User]):
     email = Faker("email")
-    name = Faker("name")
+    first_name = Faker("first_name")
+    last_name = Faker("last_name")
+    phone_number = Faker("numerify", text="98########")
     role = UserRole.TENANT
 
     @post_generation

@@ -48,6 +48,8 @@
                     <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
                   {% elif booking.status == "CONFIRMED" %}
                     <span class="badge bg-success">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "COMPLETED" %}
+                    <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
                   {% elif booking.status == "REJECTED" %}
                     <span class="badge bg-danger">{{ booking.get_status_display }}</span>
                   {% else %}
@@ -72,6 +74,13 @@
                         {% csrf_token %}
                         <button type="submit" class="btn btn-sm btn-danger">
                           {% translate "Reject" %}
+                        </button>
+                      </form>
+                    {% elif booking.status == "CONFIRMED" %}
+                      <form method="post" action="{% url 'bookings:booking_checkout' pk=booking.pk %}" class="d-inline" onsubmit="return confirm('Check out tenant and make bed available?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          {% translate "Check Out" %}
                         </button>
                       </form>
                     {% endif %}

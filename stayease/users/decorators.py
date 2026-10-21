@@ -67,5 +67,27 @@ tenant_required.__doc__ = "Decorator: 403 if the user is not a TENANT."
 owner_required = _role_required(UserRole.OWNER)
 owner_required.__doc__ = "Decorator: 403 if the user is not an OWNER."
 
-admin_required = _role_required(UserRole.ADMIN)
-admin_required.__doc__ = "Decorator: 403 if the user is not an ADMIN."
+def admin_required(view_func: Callable) -> Callable:
+    """
+    Decorator: 403 if the user is not an authenticated ADMIN or superuser.
+    Satisfies rule: request.user.is_authenticated AND (role == ADMIN OR is_superuser).
+    """
+
+    @functools.wraps(view_func)
+    def _wrapped(
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> HttpResponse:
+        if (
+            not request.user.is_authenticated
+            or not (
+                getattr(request.user, "role", None) == UserRole.ADMIN
+                or getattr(request.user, "is_superuser", False)
+            )
+        ):
+            raise PermissionDenied(_MSG_ROLE_DENIED)
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
+

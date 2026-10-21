@@ -157,7 +157,7 @@ class TestPGDiscoveryListView:
         """PG cards must not show owner email/name."""
         tenant = _tenant()
         _login(client, tenant)
-        owner = UserFactory(email="secret_owner@example.com", name="Secret Owner")
+        owner = UserFactory(email="secret_owner@example.com", first_name="Secret", last_name="Owner")
         PGFactory(owner=owner, name="Public PG")
         response = client.get(self.url)
         assert b"secret_owner@example.com" not in response.content
@@ -280,7 +280,7 @@ class TestPGDiscoveryDetailView:
     def test_does_not_expose_owner_info(self, client):
         tenant = _tenant()
         _login(client, tenant)
-        owner = UserFactory(email="owner_hidden@example.com", name="Hidden Owner")
+        owner = UserFactory(email="owner_hidden@example.com", first_name="Hidden", last_name="Owner")
         pg = PGFactory(owner=owner)
         response = client.get(self._url(pg.pk))
         assert b"owner_hidden@example.com" not in response.content

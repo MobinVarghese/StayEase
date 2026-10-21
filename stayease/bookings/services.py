@@ -22,6 +22,7 @@ Member 5 integration:
 
 from __future__ import annotations
 
+from typing import Any
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import PermissionDenied
@@ -292,7 +293,68 @@ def confirm_booking(booking: Booking) -> Booking:
     booking.status = "CONFIRMED"
     booking.confirmed_at = timezone.now()
     booking.save(update_fields=["status", "confirmed_at", "updated_at"])
+
+    from stayease.notifications.services import send_booking_confirmation_email
+
+    transaction.on_commit(lambda: send_booking_confirmation_email(booking))
     return booking
+
+
+def checkout_booking(*, booking: Booking, owner: User) -> Booking:
+    """
+    Check out a tenant from a CONFIRMED booking, transitioning it to COMPLETED.
+
+    Restores the bed's inventory availability (is_available=True) and
+    releases the occupied state so the bed can be booked again.
+
+    Row-locks both the Booking and the Bed within an atomic transaction.
+
+    Raises
+    ------
+    PermissionDenied
+        If *owner* is not an OWNER or does not own the PG for this bed.
+    ValidationError
+        If booking is not in CONFIRMED state (e.g. already COMPLETED or REJECTED).
+    """
+    from stayease.properties.models import Bed
+    from stayease.users.models import UserRole
+
+    if getattr(owner, "role", None) != UserRole.OWNER:
+        raise PermissionDenied(_("Only owners can check out bookings."))
+
+    with transaction.atomic():
+        locked_booking = (
+            Booking.objects.select_for_update()
+            .select_related("bed__room__pg")
+            .get(pk=booking.pk)
+        )
+
+        _verify_booking_owner(locked_booking, owner)
+
+        if locked_booking.status == BookingStatus.COMPLETED:
+            raise ValidationError(
+                _("This booking has already been checked out."),
+                code="already_completed",
+            )
+
+        if locked_booking.status != BookingStatus.CONFIRMED:
+            raise ValidationError(
+                _("Only confirmed bookings can be checked out."),
+                code="not_confirmed",
+            )
+
+        validate_state_transition(locked_booking.status, "COMPLETED")
+
+        locked_booking.status = BookingStatus.COMPLETED
+        locked_booking.checked_out_at = timezone.now()
+        locked_booking.save(update_fields=["status", "checked_out_at", "updated_at"])
+
+        # Restore bed availability
+        locked_bed = Bed.objects.select_for_update().get(pk=locked_booking.bed.pk)
+        locked_bed.is_available = True
+        locked_bed.save(update_fields=["is_available", "updated_at"])
+
+    return locked_booking
 
 
 # ======================================================================
@@ -322,3 +384,76 @@ def get_owner_bookings(owner: User):
         .select_related("tenant", "bed__room__pg")
         .order_by("-created_at")
     )
+
+
+# ======================================================================
+# Contact visibility authorization & extraction
+# ======================================================================
+
+
+def can_view_booking_contact(booking: Booking, user: Any) -> bool:
+    """
+    Determine whether *user* is authorized to view contact information for *booking*.
+
+    Contact details (phone numbers) are visible ONLY when:
+    1. The booking status is APPROVED, PAYMENT_PENDING, CONFIRMED, or COMPLETED
+       (i.e., after the owner approves the request, including before and after payment).
+    2. The user is authenticated.
+    3. The user is either the tenant who made the booking OR the owner
+       of the property containing the booked bed.
+
+    Returns False for unapproved states (PENDING, REJECTED) and unauthorized users.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+
+    allowed_statuses = {
+        BookingStatus.APPROVED,
+        BookingStatus.PAYMENT_PENDING,
+        BookingStatus.CONFIRMED,
+        BookingStatus.COMPLETED,
+    }
+    if not booking or getattr(booking, "status", None) not in allowed_statuses:
+        return False
+
+    is_tenant = booking.tenant == user
+    try:
+        is_owner = booking.bed.room.pg.owner == user
+    except AttributeError:
+        is_owner = False
+
+    return is_tenant or is_owner
+
+
+def get_booking_contact_info(booking: Booking, user: Any) -> dict | None:
+    """
+    Return contact details of the counterpart for *booking* if *user* is
+    authorized, otherwise None.
+
+    If *user* is the tenant -> returns the PG owner's contact information.
+    If *user* is the PG owner -> returns the tenant's contact information.
+    """
+    if not can_view_booking_contact(booking, user):
+        return None
+
+    if booking.tenant == user:
+        counterpart = booking.bed.room.pg.owner
+        role_label = _("Owner")
+    else:
+        counterpart = booking.tenant
+        role_label = _("Tenant")
+
+    name = getattr(counterpart, "name", "")
+    if not name:
+        name = getattr(counterpart, "email", "")
+
+    phone_number = getattr(counterpart, "phone_number", "") or ""
+
+    return {
+        "counterpart": counterpart,
+        "role_label": role_label,
+        "name": name,
+        "phone_number": phone_number,
+        "email": getattr(counterpart, "email", ""),
+    }
+

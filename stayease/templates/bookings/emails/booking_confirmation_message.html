@@ -1,0 +1,178 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% trans "Booking Confirmed — StayEase" %}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f1923; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f1923; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #1a2836; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.3);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #4361ee, #3a56d4); padding: 36px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                🏠 Stay<span style="color: #a8c7fa;">Ease</span>
+              </h1>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">
+                {% trans "Your trusted PG booking platform" %}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Success Banner -->
+          <tr>
+            <td style="padding: 32px 40px 16px; text-align: center;">
+              <div style="display: inline-block; background-color: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 50px; padding: 8px 24px; margin-bottom: 16px;">
+                <span style="color: #10b981; font-weight: 600; font-size: 15px;">
+                  ✓ {% trans "Payment Successful & Booking Confirmed" %}
+                </span>
+              </div>
+              <h2 style="color: #ffffff; font-size: 24px; margin: 0 0 8px; font-weight: 700;">
+                {% trans "Pack your bags" %}, {{ tenant_name }}!
+              </h2>
+              <p style="color: #9aa0a6; font-size: 15px; line-height: 1.6; margin: 0;">
+                {% trans "Your reservation at" %} <strong style="color: #e8eaed;">{{ pg.name }}</strong> {% trans "is officially confirmed." %}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Booking Summary Card -->
+          <tr>
+            <td style="padding: 16px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #213244; border-radius: 12px; border: 1px solid #2d3f54; padding: 20px;">
+                <tr>
+                  <td>
+                    <h3 style="color: #4361ee; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px; font-weight: 700;">
+                      📋 {% trans "Reservation Summary" %}
+                    </h3>
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="color: #e8eaed; font-size: 14px;">
+                      <tr>
+                        <td style="color: #9aa0a6; width: 40%;">{% trans "Booking Reference" %}:</td>
+                        <td style="font-weight: 600; color: #a8c7fa;">#{{ booking.id }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Property" %}:</td>
+                        <td style="font-weight: 600;">{{ pg.name }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Location" %}:</td>
+                        <td>{{ pg.address }}, {{ pg.city }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Room & Floor" %}:</td>
+                        <td>Room {{ booking.bed.room.room_number }} (Floor {{ booking.bed.room.floor }})</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Assigned Bed" %}:</td>
+                        <td style="font-weight: 600; color: #10b981;">{{ booking.bed.label }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Monthly Rent" %}:</td>
+                        <td style="font-weight: 600;">₹{{ booking.bed.rent_per_month }}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Payment Info -->
+          <tr>
+            <td style="padding: 8px 40px 16px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #213244; border-radius: 12px; border: 1px solid #2d3f54; padding: 20px;">
+                <tr>
+                  <td>
+                    <h3 style="color: #10b981; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px; font-weight: 700;">
+                      💳 {% trans "Payment Details" %}
+                    </h3>
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="color: #e8eaed; font-size: 14px;">
+                      <tr>
+                        <td style="color: #9aa0a6; width: 40%;">{% trans "Amount Paid" %}:</td>
+                        <td style="font-weight: 700; color: #ffffff; font-size: 16px;">₹{{ payment_amount }}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Payment Status" %}:</td>
+                        <td><span style="color: #10b981; font-weight: 600;">✓ {% trans "Completed" %}</span></td>
+                      </tr>
+                      {% if transaction_ref %}
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Transaction Ref" %}:</td>
+                        <td style="font-family: monospace; font-size: 13px; color: #a8c7fa;">{{ transaction_ref }}</td>
+                      </tr>
+                      {% endif %}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Host Contact Card -->
+          <tr>
+            <td style="padding: 8px 40px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #213244; border-radius: 12px; border: 1px solid #2d3f54; padding: 20px;">
+                <tr>
+                  <td>
+                    <h3 style="color: #f59e0b; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px; font-weight: 700;">
+                      👤 {% trans "PG Owner / Host Contact" %}
+                    </h3>
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="color: #e8eaed; font-size: 14px;">
+                      <tr>
+                        <td style="color: #9aa0a6; width: 40%;">{% trans "Host Name" %}:</td>
+                        <td style="font-weight: 600;">{{ owner_name }}</td>
+                      </tr>
+                      {% if owner_phone %}
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Phone" %}:</td>
+                        <td>{{ owner_phone }}</td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td style="color: #9aa0a6;">{% trans "Email" %}:</td>
+                        <td><a href="mailto:{{ owner_email }}" style="color: #4361ee; text-decoration: none;">{{ owner_email }}</a></td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td style="padding: 0 40px 36px; text-align: center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="border-radius: 10px; background: linear-gradient(135deg, #4361ee, #3a56d4);">
+                    <a href="{{ booking_url }}"
+                       target="_blank"
+                       style="display: inline-block; padding: 14px 36px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; letter-spacing: 0.3px;">
+                      🏠 {% trans "View Booking in StayEase" %}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #151f2b; padding: 24px 40px; text-align: center; border-top: 1px solid #2d3a47;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0 0 6px;">
+                © 2026 StayEase. {% trans "All rights reserved." %}
+              </p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                {% trans "Need help with your stay? Contact us at" %} support@stayease.in
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

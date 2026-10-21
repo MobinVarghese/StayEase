@@ -1,0 +1,82 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% trans "Verify Your Email — StayEase" %}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f1923; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f1923; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #1a2836; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.3);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #4361ee, #3a56d4); padding: 36px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                🏠 Stay<span style="color: #a8c7fa;">Ease</span>
+              </h1>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">
+                {% trans "Your trusted PG booking platform" %}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="color: #e8eaed; font-size: 22px; margin: 0 0 16px; font-weight: 600;">
+                {% trans "Verify Your Email Address" %}
+              </h2>
+              <p style="color: #9aa0a6; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+                {% blocktrans %}You're receiving this email because you registered an account on StayEase. Please verify your email address by clicking the button below.{% endblocktrans %}
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto 28px;">
+                <tr>
+                  <td style="border-radius: 10px; background: linear-gradient(135deg, #4361ee, #3a56d4);">
+                    <a href="{{ activate_url }}"
+                       target="_blank"
+                       style="display: inline-block; padding: 14px 36px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; letter-spacing: 0.3px;">
+                      ✉️ {% trans "Verify My Email" %}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #9aa0a6; font-size: 13px; line-height: 1.5; margin: 0 0 16px;">
+                {% trans "Or copy and paste this link into your browser:" %}
+              </p>
+              <p style="color: #4361ee; font-size: 13px; word-break: break-all; line-height: 1.5; margin: 0 0 28px;">
+                {{ activate_url }}
+              </p>
+
+              <div style="border-top: 1px solid #2d3a47; padding-top: 20px; margin-top: 8px;">
+                <p style="color: #9aa0a6; font-size: 13px; line-height: 1.5; margin: 0 0 8px;">
+                  ⏰ {% trans "This link expires in 3 days." %}
+                </p>
+                <p style="color: #9aa0a6; font-size: 13px; line-height: 1.5; margin: 0;">
+                  {% trans "If you did not create an account on StayEase, you can safely ignore this email." %}
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #151f2b; padding: 24px 40px; text-align: center; border-top: 1px solid #2d3a47;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0 0 6px;">
+                © 2026 StayEase. {% trans "All rights reserved." %}
+              </p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                {% trans "Koramangala, Bengaluru, India" %} · support@stayease.in
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

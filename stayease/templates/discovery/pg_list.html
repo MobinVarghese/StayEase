@@ -78,7 +78,15 @@
             <ul class="list-unstyled small">
               <li>
                 <strong>{% translate "Rent:" %}</strong>
-                ₹{{ pg.rent_per_month }}/{% translate "month" %}
+                {% if pg.starting_rent %}
+                  {% translate "Starting from" %} ₹{{ pg.starting_rent|floatformat:0 }}/{% translate "month" %}
+                {% elif pg.min_bed_rent %}
+                  {% translate "From" %} ₹{{ pg.min_bed_rent|floatformat:0 }}/{% translate "month" %}
+                {% elif pg.rent_per_month %}
+                  ₹{{ pg.rent_per_month|floatformat:0 }}/{% translate "month" %}
+                {% else %}
+                  <span class="text-muted">{% translate "Contact for pricing" %}</span>
+                {% endif %}
               </li>
               {% if pg.amenities %}
                 <li>

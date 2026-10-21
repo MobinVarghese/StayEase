@@ -1,4 +1,10 @@
+from decimal import Decimal
+from typing import Any
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +25,8 @@ class PG(models.Model):
         help_text=_("The owner who manages this PG property."),
     )
     name = models.CharField(_("name"), max_length=255)
+    # Dynamic queryset annotation (e.g. from discovery.services.get_active_pgs_queryset)
+    available_bed_count: int
     description = models.TextField(_("description"), blank=True)
     address = models.TextField(_("address"))
     city = models.CharField(_("city"), max_length=100)
@@ -26,7 +34,9 @@ class PG(models.Model):
         _("rent per month"),
         max_digits=10,
         decimal_places=2,
-        help_text=_("Base / representative monthly rent for this PG."),
+        null=True,
+        blank=True,
+        help_text=_("Base / representative monthly rent for this PG (legacy)."),
     )
     amenities = models.TextField(
         _("amenities"),
@@ -48,6 +58,54 @@ class PG(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def starting_rent(self) -> Decimal | None:
+        """
+        Minimum rent among available active beds across active rooms.
+        Falls back to minimum rent among active beds, then legacy rent_per_month.
+        """
+        annotated = getattr(self, "starting_rent_annotated", None)
+        if annotated is not None:
+            return annotated
+
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        all_beds = []
+        for room in self.rooms.all():
+            if room.is_active:
+                for bed in room.beds.all():
+                    if bed.is_active:
+                        all_beds.append(bed)
+
+        # Check for bookable beds (available and no active booking)
+        bookable_beds = []
+        for b in all_beds:
+            if not b.is_available:
+                continue
+            bookings_mgr = getattr(b, "bookings", None)
+            has_active = False
+            if bookings_mgr is not None:
+                has_active = any(
+                    booking.status in ACTIVE_BOOKING_STATUSES
+                    for booking in bookings_mgr.all()
+                )
+            if not has_active:
+                bookable_beds.append(b)
+
+        if bookable_beds:
+            return min(b.rent_per_month for b in bookable_beds)
+
+        # Fallback to any inventory-available beds
+        available_beds = [b for b in all_beds if b.is_available]
+        if available_beds:
+            return min(b.rent_per_month for b in available_beds)
+
+        # Fallback to any active bed
+        if all_beds:
+            return min(b.rent_per_month for b in all_beds)
+
+        return self.rent_per_month
 
 
 class Room(models.Model):
@@ -79,7 +137,9 @@ class Room(models.Model):
         _("rent"),
         max_digits=10,
         decimal_places=2,
-        help_text=_("Monthly rent for this room."),
+        null=True,
+        blank=True,
+        help_text=_("Legacy / reference monthly rent for this room."),
     )
     description = models.TextField(_("description"), blank=True)
     is_active = models.BooleanField(
@@ -104,12 +164,161 @@ class Room(models.Model):
     def __str__(self):
         return f"{self.pg.name} - Room {self.room_number}"
 
+    def clean(self):
+        super().clean()
+        if self.capacity is not None and self.capacity < 1:
+            raise ValidationError({"capacity": _("Capacity must be at least 1.")})
+
+        if self.room_type:
+            rt = self.room_type.strip().lower()
+            if rt == "single":
+                if self.capacity is not None and self.capacity != 1:
+                    raise ValidationError(
+                        {"capacity": _("A single room can only have 1 bed (capacity must be 1).")},
+                    )
+                if self.pk:
+                    active_beds = self.beds.filter(is_active=True).count()
+                    if active_beds > 1:
+                        raise ValidationError(
+                            {
+                                "room_type": _(
+                                    "Cannot set room type to Single because this room already has %(count)d active beds. A single room can only have 1 bed.",
+                                )
+                                % {"count": active_beds},
+                            },
+                        )
+            elif rt == "double":
+                if self.capacity is not None and self.capacity != 2:
+                    raise ValidationError(
+                        {"capacity": _("A double room can only have 2 beds (capacity must be 2).")},
+                    )
+                if self.pk:
+                    active_beds = self.beds.filter(is_active=True).count()
+                    if active_beds > 2:
+                        raise ValidationError(
+                            {
+                                "room_type": _(
+                                    "Cannot set room type to Double because this room already has %(count)d active beds. A double room can only have 2 beds.",
+                                )
+                                % {"count": active_beds},
+                            },
+                        )
+
+    def get_availability_stats(self) -> dict[str, Any]:
+        """
+        Derive room availability dynamically from its beds and their booking states.
+        Uses prefetched caches when available to avoid N+1 queries.
+        """
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        if hasattr(self, "_prefetched_objects_cache") and "beds" in self._prefetched_objects_cache:
+            active_beds = [b for b in self.beds.all() if b.is_active]
+            total = len(active_beds)
+            occupied = 0
+            available = 0
+            for b in active_beds:
+                if hasattr(b, "_prefetched_objects_cache") and "bookings" in b._prefetched_objects_cache:
+                    has_active = any(bk.status in ACTIVE_BOOKING_STATUSES for bk in b.bookings.all())  # type: ignore[attr-defined]
+                else:
+                    has_active = b.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).exists()  # type: ignore[attr-defined]
+
+                if has_active:
+                    occupied += 1
+                elif b.is_available:
+                    available += 1
+        else:
+            active_beds_qs = self.beds.filter(is_active=True)
+            total = active_beds_qs.count()
+            occupied = active_beds_qs.filter(
+                bookings__status__in=ACTIVE_BOOKING_STATUSES,
+            ).distinct().count()
+            available = active_beds_qs.filter(
+                is_available=True,
+            ).exclude(
+                bookings__status__in=ACTIVE_BOOKING_STATUSES,
+            ).count()
+
+        if not self.is_active:
+            status = "Inactive"
+            status_code = "INACTIVE"
+        elif total == 0:
+            status = "No Beds"
+            status_code = "NO_BEDS"
+        elif available == 0:
+            status = "Full / Unavailable"
+            status_code = "FULL"
+        elif occupied > 0:
+            status = "Active / Partially occupied"
+            status_code = "PARTIALLY_OCCUPIED"
+        else:
+            status = "Active / Available"
+            status_code = "AVAILABLE"
+
+        return {
+            "total": total,
+            "occupied": occupied,
+            "available": available,
+            "status": status,
+            "status_code": status_code,
+            "is_bookable": self.is_active and available > 0,
+        }
+
+    @property
+    def availability_status(self) -> str:
+        """Dynamic room status derived from bed bookings."""
+        return self.get_availability_stats()["status"]
+
+    @property
+    def availability_status_code(self) -> str:
+        return self.get_availability_stats()["status_code"]
+
+    @property
+    def total_beds_count(self) -> int:
+        return self.get_availability_stats()["total"]
+
+    @property
+    def occupied_beds_count(self) -> int:
+        return self.get_availability_stats()["occupied"]
+
+    @property
+    def available_beds_count(self) -> int:
+        return self.get_availability_stats()["available"]
+
+    @property
+    def is_bookable(self) -> bool:
+        return self.get_availability_stats()["is_bookable"]
+
+    @property
+    def starting_rent(self) -> Decimal | None:
+        """Minimum rent of available active beds in this room."""
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        bookable_beds = []
+        active_beds = []
+        for b in self.beds.all():
+            if b.is_active:
+                active_beds.append(b)
+                if b.is_available:
+                    if hasattr(b, "_prefetched_objects_cache") and "bookings" in b._prefetched_objects_cache:
+                        has_active = any(bk.status in ACTIVE_BOOKING_STATUSES for bk in b.bookings.all())  # type: ignore[attr-defined]
+                    else:
+                        has_active = b.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).exists()  # type: ignore[attr-defined]
+                    if not has_active:
+                        bookable_beds.append(b)
+
+        if bookable_beds:
+            return min(b.rent_per_month for b in bookable_beds)
+        if active_beds:
+            return min(b.rent_per_month for b in active_beds)
+        return self.rent
+
 
 class Bed(models.Model):
     """
     An individually bookable sleeping space within a room.
 
     The bed is the primary unit that a tenant requests to book.
+    Pricing is configured on the bed and is authoritative for bookings.
 
     Relationship: Room 1──N Bed
     Business logic ownership: Member 2 (inventory), Member 4 (booking)
@@ -125,6 +334,13 @@ class Bed(models.Model):
         _("label"),
         max_length=50,
         help_text=_('e.g. "Bed A", "Bed B"'),
+    )
+    rent_per_month = models.DecimalField(
+        _("rent per month"),
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text=_("Monthly rent for this bed."),
     )
     is_available = models.BooleanField(
         _("available"),
@@ -151,4 +367,204 @@ class Bed(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.room} - {self.label}"
+        return f"{self.room} - {self.label} (₹{self.rent_per_month}/mo)"
+
+    def clean(self):
+        super().clean()
+        if self.room_id and self.is_active:
+            from stayease.properties.services import validate_bed_capacity
+
+            validate_bed_capacity(self.room, exclude_bed_pk=self.pk)
+
+    @property
+    def is_occupied(self) -> bool:
+        """Return True if this bed has an active booking."""
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        if hasattr(self, "_prefetched_objects_cache") and "bookings" in self._prefetched_objects_cache:
+            return any(b.status in ACTIVE_BOOKING_STATUSES for b in self.bookings.all())  # type: ignore[attr-defined]
+        return self.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).exists()  # type: ignore[attr-defined]
+
+    @property
+    def active_booking(self):
+        """Return the current active booking on this bed, if any."""
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        if hasattr(self, "_prefetched_objects_cache") and "bookings" in self._prefetched_objects_cache:
+            for b in self.bookings.all():  # type: ignore[attr-defined]
+                if b.status in ACTIVE_BOOKING_STATUSES:
+                    return b
+            return None
+        return self.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).select_related("tenant").first()  # type: ignore[attr-defined]
+
+    @property
+    def is_bookable(self) -> bool:
+        """Return True if this bed is active, owner-enabled, and not occupied."""
+        return self.is_active and self.is_available and not self.is_occupied
+
+    @property
+    def status_display(self) -> str:
+        """Human-readable status for owner management and dashboards."""
+        if not self.is_active:
+            return "Inactive"
+        if not self.is_available:
+            return "Unavailable"
+        if self.is_occupied:
+            return "Occupied"
+        return "Available"
+
+
+class RoomImage(models.Model):
+    """
+    A photo of a room uploaded by the PG owner.
+
+    Maximum 3 photos per room are allowed. These photos are visible to tenants
+    browsing rooms on the discovery pages.
+
+    Relationship: Room 1──N RoomImage (max 3)
+    """
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name=_("room"),
+    )
+    image = models.ImageField(
+        _("image"),
+        upload_to="rooms/%Y/%m/",
+        help_text=_("Room photo (JPEG/PNG/WebP, max 3 per room)."),
+    )
+    caption = models.CharField(
+        _("caption"),
+        max_length=120,
+        blank=True,
+        help_text=_("Optional short caption for this photo."),
+    )
+    order = models.PositiveSmallIntegerField(
+        _("display order"),
+        default=0,
+        help_text=_("Order in which this image is displayed."),
+    )
+    uploaded_at = models.DateTimeField(_("uploaded at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Room Image")
+        verbose_name_plural = _("Room Images")
+        ordering = ["order", "uploaded_at"]
+
+    def __str__(self):
+        return f"Image for {self.room} (ID: {self.pk or 'new'})"
+
+    def clean(self):
+        super().clean()
+        if not self.pk and self.room_id:
+            existing_count = self.room.images.count()
+            if existing_count >= 3:
+                raise ValidationError(
+                    _("A maximum of 3 photos can be uploaded for a room."),
+                )
+
+
+class Review(models.Model):
+    """
+    A tenant's rating and review for an accommodation they completed a stay in.
+
+    Requirements:
+    - 1 review per completed booking (enforced via OneToOneField).
+    - Only tenants with a COMPLETED booking may submit.
+    - Rating strictly between 1 and 5.
+    - Privacy-aware display name for public views.
+    """
+
+    booking = models.OneToOneField(
+        "bookings.Booking",
+        on_delete=models.CASCADE,
+        related_name="review",
+        verbose_name=_("booking"),
+        help_text=_("The completed booking this review is associated with."),
+    )
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name=_("room"),
+        help_text=_("The room being reviewed."),
+    )
+    tenant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name=_("tenant"),
+        help_text=_("The verified tenant who stayed in the room."),
+    )
+    rating = models.PositiveSmallIntegerField(
+        _("rating"),
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Rating from 1 (lowest) to 5 (highest) stars."),
+    )
+    comment = models.TextField(
+        _("review text"),
+        help_text=_("Tenant feedback about their stay."),
+    )
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Review")
+        verbose_name_plural = _("Reviews")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Review #{self.pk} by {self.tenant} for {self.room} ({self.rating}★)"
+
+    def clean(self):
+        super().clean()
+        if self.rating is not None and not (1 <= self.rating <= 5):
+            raise ValidationError({"rating": _("Rating must be between 1 and 5 stars.")})
+
+        booking = getattr(self, "booking", None)
+        if booking is not None:
+            from stayease.bookings.models import BookingStatus
+
+            if booking.status != BookingStatus.COMPLETED:
+                raise ValidationError(
+                    {"booking": _("Reviews can only be submitted for completed stays.")}
+                )
+
+            tenant = getattr(self, "tenant", None)
+            if tenant is not None and booking.tenant != tenant:
+                raise ValidationError(
+                    {"tenant": _("Only the tenant who stayed can submit a review.")}
+                )
+
+            room = getattr(self, "room", None)
+            if room is not None and booking.bed.room != room:
+                raise ValidationError(
+                    {"room": _("The reviewed room must match the booking's room.")}
+                )
+
+    @property
+    def pg(self) -> PG:
+        return self.room.pg
+
+    @property
+    def tenant_display_name(self) -> str:
+        """
+        Privacy-friendly display name (e.g. 'Rahul S.' or 'Verified Resident').
+        Does not expose email or full private info on public pages.
+        """
+        tenant = getattr(self, "tenant", None)
+        if not tenant:
+            return "Verified Resident"
+        if tenant.first_name and tenant.last_name:
+            return f"{tenant.first_name} {tenant.last_name[0]}."
+        name = tenant.name or ""
+        parts = name.strip().split()
+        if len(parts) > 1:
+            return f"{parts[0]} {parts[-1][0]}."
+        if len(parts) == 1:
+            return parts[0]
+        return "Verified Resident"
+
+

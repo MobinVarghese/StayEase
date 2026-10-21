@@ -34,6 +34,12 @@ urlpatterns = [
         views.BookingDetailView.as_view(),
         name="booking_detail",
     ),
+    # Tenant submits a review for a completed stay
+    path(
+        "<int:pk>/review/",
+        views.BookingReviewCreateView.as_view(),
+        name="booking_review",
+    ),
     # ------------------------------------------------------------------
     # Owner URLs
     # ------------------------------------------------------------------
@@ -54,5 +60,11 @@ urlpatterns = [
         "<int:pk>/reject/",
         views.BookingRejectView.as_view(),
         name="booking_reject",
+    ),
+    # Owner checks out a tenant from a CONFIRMED booking (POST only)
+    path(
+        "<int:pk>/checkout/",
+        views.BookingCheckoutView.as_view(),
+        name="booking_checkout",
     ),
 ]

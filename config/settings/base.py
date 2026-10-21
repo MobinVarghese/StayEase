@@ -157,6 +157,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "stayease.users.middleware.NoCacheOnAuthenticatedMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -242,6 +243,18 @@ EMAIL_BACKEND = env(
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
+# https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
+DEFAULT_FROM_EMAIL = env(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    default="StayEase <noreply@stayease.in>",
+)
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+
+# Canonical public URL for generating absolute links in emails (verification, bookings)
+# Read from STAYEASE_PUBLIC_URL (falling back to legacy SITE_URL or http://localhost:8000)
+_raw_public_url = env("STAYEASE_PUBLIC_URL", default=env("SITE_URL", default="http://localhost:8000"))
+STAYEASE_PUBLIC_URL = _raw_public_url.strip().rstrip("/")
+SITE_URL = STAYEASE_PUBLIC_URL
 
 # ADMIN
 # ------------------------------------------------------------------------------
@@ -288,15 +301,18 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_LOGIN_METHODS = {"email"}
 # https://docs.allauth.org/en/latest/account/configuration.html
-ACCOUNT_SIGNUP_FIELDS = ["email*", "role*", "password1*", "password2*"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "first_name*", "last_name*", "phone_number*", "role*", "password1*", "password2*"]
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # https://docs.allauth.org/en/latest/account/configuration.html
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = "none"
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "stayease.users.adapters.AccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
-ACCOUNT_FORMS = {"signup": "stayease.users.forms.UserSignupForm"}
+ACCOUNT_FORMS = {
+    "signup": "stayease.users.forms.UserSignupForm",
+    "login": "stayease.users.forms.UserLoginForm",
+}
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_ADAPTER = "stayease.users.adapters.SocialAccountAdapter"
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html

@@ -1,0 +1,1 @@
+{% load i18n %}{% blocktrans with pg_name=booking.bed.room.pg.name booking_id=booking.id %}Booking Confirmed! Your stay at {{ pg_name }} is reserved — #{{ booking_id }}{% endblocktrans %}

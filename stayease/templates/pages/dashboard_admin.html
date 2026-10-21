@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {% translate "Admin Dashboard" %} | StayEase
+{% endblock title %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h1 class="h2 fw-bold text-dark mb-1">{% translate "Administrator Dashboard" %}</h1>
+      <p class="text-muted mb-0">
+        {% translate "Welcome back," %} <strong class="text-dark">{% if request.user.first_name %}{{ request.user.first_name }}{% else %}{{ request.user.email }}{% endif %}</strong>
+        <span class="badge bg-danger ms-1">{% translate "Admin" %}</span>
+      </p>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <a href="{% url 'admin:index' %}" class="btn btn-outline-dark btn-sm fw-semibold">
+        <i class="bi bi-shield-lock me-1"></i>{% translate "Django Admin" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Primary Summary Metric Cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
+            <i class="bi bi-buildings fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Total PGs / Properties" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-total-pgs">{{ total_pgs_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-info bg-opacity-10 text-info rounded-3">
+            <i class="bi bi-door-open fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Total Rooms" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-total-rooms">{{ total_rooms_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-secondary bg-opacity-10 text-secondary rounded-3">
+            <i class="bi bi-people fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Total Platform Users" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-total-users">{{ total_users_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-success bg-opacity-10 text-success rounded-3">
+            <i class="bi bi-calendar-check fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Total Bookings" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-total-bookings">{{ total_bookings_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary Operational Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-success bg-opacity-10 text-success rounded-3">
+            <i class="bi bi-check2-circle fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Confirmed Bookings" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-confirmed-bookings">{{ confirmed_bookings_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-3">
+            <i class="bi bi-hourglass-split fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Pending Bookings" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-pending-bookings">{{ pending_bookings_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-3">
+            <i class="bi bi-x-circle fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Rejected Bookings" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-rejected-bookings">{{ rejected_bookings_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 bg-dark bg-opacity-10 text-dark rounded-3">
+            <i class="bi bi-key fs-4"></i>
+          </div>
+          <div>
+            <h6 class="text-muted small mb-0">{% translate "Pending Password Resets" %}</h6>
+            <span class="fs-4 fw-bold text-dark" id="stat-pending-resets">{{ pending_requests_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PG Booking Report Section -->
+  <div class="card shadow-sm border-0 rounded-3 mb-4">
+    <div class="card-header bg-white border-bottom py-3">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-bar-chart-line-fill text-primary fs-5"></i>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">{% translate "PG Booking Activity Report" %}</h5>
+            <small class="text-muted">{% translate "Number of bookings received by each PG/Property" %}</small>
+          </div>
+        </div>
+
+        <!-- Date Filter Buttons -->
+        <div class="btn-group btn-group-sm" role="group" aria-label="Date Filter">
+          <a href="?period=all" class="btn {% if selected_period == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {% translate "All Time" %}
+          </a>
+          <a href="?period=month" class="btn {% if selected_period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {% translate "This Month" %}
+          </a>
+          <a href="?period=year" class="btn {% if selected_period == 'year' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {% translate "This Year" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Summary for Selected Period -->
+      <div class="mt-3 pt-2 border-top d-flex flex-wrap gap-3 small text-muted align-items-center">
+        <span>
+          <strong>{% translate "Filter:" %}</strong>
+          <span class="badge bg-light text-dark border ms-1">
+            {% if selected_period == 'month' %}{% translate "This Month" %}
+            {% elif selected_period == 'year' %}{% translate "This Year" %}
+            {% else %}{% translate "All Time" %}{% endif %}
+          </span>
+        </span>
+        <span>•</span>
+        <span>{% translate "Total Bookings in Period:" %} <strong class="text-dark">{{ period_total_bookings }}</strong></span>
+        <span>•</span>
+        <span>{% translate "Confirmed:" %} <strong class="text-success">{{ period_confirmed_bookings }}</strong></span>
+        <span>•</span>
+        <span>{% translate "Pending:" %} <strong class="text-warning">{{ period_pending_bookings }}</strong></span>
+        <span>•</span>
+        <span>{% translate "Rejected:" %} <strong class="text-danger">{{ period_rejected_bookings }}</strong></span>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      {% if pg_booking_report %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="pg-booking-report-table">
+            <thead class="table-light text-muted small text-uppercase">
+              <tr>
+                <th scope="col" class="ps-4">{% translate "PG / Property" %}</th>
+                <th scope="col">{% translate "Location" %}</th>
+                <th scope="col">{% translate "Owner" %}</th>
+                <th scope="col" class="text-center">{% translate "Total Bookings" %}</th>
+                <th scope="col" class="text-center">{% translate "Confirmed" %}</th>
+                <th scope="col" class="text-center">{% translate "Pending" %}</th>
+                <th scope="col" class="text-center">{% translate "Rejected" %}</th>
+                <th scope="col" class="pe-4 text-end">{% translate "View" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pg in pg_booking_report %}
+                <tr id="pg-row-{{ pg.id }}">
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ pg.name }}</div>
+                    <small class="text-muted">{{ pg.room_count }} {% translate "rooms" %}</small>
+                  </td>
+                  <td>
+                    <span class="text-secondary small">
+                      <i class="bi bi-geo-alt me-1 text-danger"></i>{{ pg.city }}, {{ pg.state }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="small text-dark fw-medium">{{ pg.owner.name|default:pg.owner.email }}</div>
+                    <small class="text-muted">{{ pg.owner.email }}</small>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-primary rounded-pill px-3 py-2 fs-6">
+                      {{ pg.total_bookings }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    {% if pg.confirmed_bookings > 0 %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                        {{ pg.confirmed_bookings }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted small">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if pg.pending_bookings > 0 %}
+                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                        {{ pg.pending_bookings }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted small">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if pg.rejected_bookings > 0 %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                        {{ pg.rejected_bookings }}
+                      </span>
+                    {% else %}
+                      <span class="text-muted small">0</span>
+                    {% endif %}
+                  </td>
+                  <td class="pe-4 text-end">
+                    <a href="{% url 'admin:properties_pg_change' pg.pk %}" class="btn btn-sm btn-outline-primary" title="{% translate 'View PG in Admin' %}">
+                      <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-buildings fs-1 text-secondary mb-2 d-block"></i>
+          <h6 class="fw-semibold text-dark">{% translate "No PGs Found" %}</h6>
+          <p class="small text-muted mb-0">{% translate "There are currently no PG properties listed on the website." %}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Password Reset Requests Management Section -->
+  <div class="card shadow-sm border-0 rounded-3 mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-key-fill text-primary fs-5"></i>
+        <h5 class="fw-bold mb-0 text-dark">{% translate "Password Reset Requests" %}</h5>
+      </div>
+      <span class="badge bg-secondary rounded-pill">{{ reset_requests.count }} {% translate "total" %}</span>
+    </div>
+
+    <div class="card-body p-0">
+      {% if reset_requests %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+              <tr>
+                <th scope="col" class="ps-4">{% translate "User" %}</th>
+                <th scope="col">{% translate "Email" %}</th>
+                <th scope="col">{% translate "Reason" %}</th>
+                <th scope="col">{% translate "Status" %}</th>
+                <th scope="col">{% translate "Created" %}</th>
+                <th scope="col">{% translate "Processed By" %}</th>
+                <th scope="col">{% translate "Admin Notes" %}</th>
+                <th scope="col" class="pe-4 text-end">{% translate "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for req in reset_requests %}
+                <tr id="reset-req-{{ req.id }}">
+                  <td class="ps-4">
+                    <div class="fw-semibold text-dark">{{ req.user.name|default:req.user.email }}</div>
+                    <small class="text-muted">{{ req.user.get_role_display }}</small>
+                  </td>
+                  <td>
+                    <span class="text-secondary small">{{ req.email }}</span>
+                  </td>
+                  <td style="max-width: 220px;">
+                    <span class="small text-muted text-break">{{ req.reason|default:"—" }}</span>
+                  </td>
+                  <td>
+                    {% if req.status == 'pending' %}
+                      <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>{% translate "Pending" %}</span>
+                    {% elif req.status == 'approved' %}
+                      <span class="badge bg-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>{% translate "Approved" %}</span>
+                    {% elif req.status == 'rejected' %}
+                      <span class="badge bg-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>{% translate "Rejected" %}</span>
+                    {% else %}
+                      <span class="badge bg-secondary px-2 py-1">{{ req.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="small text-muted">
+                    {{ req.created_at|date:"M d, Y H:i" }}
+                  </td>
+                  <td class="small text-muted">
+                    {% if req.processed_by %}
+                      <span class="fw-medium text-dark">{{ req.processed_by.first_name|default:req.processed_by.email }}</span>
+                      <br><span class="text-muted" style="font-size: 0.75rem;">{{ req.processed_at|date:"M d, Y H:i" }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="max-width: 180px;">
+                    <span class="small text-muted text-break">{{ req.admin_notes|default:"—" }}</span>
+                    {% if req.new_password %}
+                      <div class="mt-1">
+                        <span class="badge bg-light text-dark border font-monospace" title="{% translate 'Temporary password for user' %}">
+                          <i class="bi bi-lock-fill text-success me-1"></i>{{ req.new_password }}
+                        </span>
+                      </div>
+                    {% endif %}
+                  </td>
+                  <td class="pe-4 text-end">
+                    {% if req.status == 'pending' %}
+                      <div class="d-inline-flex gap-2">
+                        <!-- Approve Form -->
+                        <form method="post" action="{% url 'approve_password_reset' req.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit"
+                                  id="approve-btn-{{ req.id }}"
+                                  class="btn btn-sm btn-success fw-semibold d-inline-flex align-items-center gap-1"
+                                  onclick="return confirm('Are you sure you want to APPROVE this request? A temporary password will be generated.');">
+                            <i class="bi bi-check2"></i> {% translate "Approve" %}
+                          </button>
+                        </form>
+
+                        <!-- Reject Form -->
+                        <form method="post" action="{% url 'reject_password_reset' req.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit"
+                                  id="reject-btn-{{ req.id }}"
+                                  class="btn btn-sm btn-outline-danger fw-semibold d-inline-flex align-items-center gap-1"
+                                  onclick="return confirm('Are you sure you want to REJECT this request?');">
+                            <i class="bi bi-x-lg"></i> {% translate "Reject" %}
+                          </button>
+                        </form>
+                      </div>
+                    {% else %}
+                      <span class="badge bg-light text-muted border">
+                        {% if req.status == 'approved' %}
+                          <i class="bi bi-check-all text-success me-1"></i>{% translate "Processed" %}
+                        {% else %}
+                          <i class="bi bi-dash-circle text-danger me-1"></i>{% translate "Closed" %}
+                        {% endif %}
+                      </span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-shield-check fs-1 text-secondary mb-2 d-block"></i>
+          <h6 class="fw-semibold text-dark">{% translate "No password reset requests" %}</h6>
+          <p class="small text-muted mb-0">{% translate "There are currently no password reset requests submitted." %}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

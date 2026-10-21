@@ -30,6 +30,7 @@ from stayease.bookings.models import BookingStatus
 from stayease.bookings.services import confirm_booking
 from stayease.bookings.services import mark_payment_pending
 from stayease.notifications.services import notify_payment_successful
+from stayease.notifications.services import send_booking_confirmation_email
 from stayease.payments.models import Payment
 from stayease.payments.models import PaymentStatus
 
@@ -74,7 +75,7 @@ def initiate_payment(*, booking: Booking, user: User) -> Payment:
     # ------------------------------------------------------------------
     # 1. Verify ownership — only the booking's tenant can pay
     # ------------------------------------------------------------------
-    if booking.tenant_id != user.pk:
+    if booking.tenant != user:
         raise PermissionDenied(
             _("You do not have permission to pay for this booking.")
         )
@@ -106,7 +107,7 @@ def initiate_payment(*, booking: Booking, user: User) -> Payment:
         # ------------------------------------------------------------------
         payment = Payment.objects.create(
             booking=booking,
-            amount=booking.bed.room.rent,
+            amount=booking.bed.rent_per_month,
             status=PaymentStatus.PENDING,
             transaction_ref=_generate_transaction_ref(),
         )
@@ -152,7 +153,7 @@ def process_dummy_payment(
     # ------------------------------------------------------------------
     # 1. Verify ownership
     # ------------------------------------------------------------------
-    if payment.booking.tenant_id != user.pk:
+    if payment.booking.tenant != user:
         raise PermissionDenied(
             _("You do not have permission to process this payment.")
         )
@@ -179,6 +180,12 @@ def process_dummy_payment(
 
             # Member 5: trigger confirmation notification
             notify_payment_successful(payment.booking)
+
+            # Send booking confirmation email safely after transaction commits
+            confirmed_booking = payment.booking
+            transaction.on_commit(
+                lambda: send_booking_confirmation_email(confirmed_booking)
+            )
         else:
             payment.status = PaymentStatus.FAILED
             payment.save(update_fields=["status", "updated_at"])
