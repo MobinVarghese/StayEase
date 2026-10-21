@@ -1,0 +1,12 @@
+# ------------------------------------------------------------------------------
+# StayEase Local PostgreSQL Environment Configuration Template
+# Copy this file to '.envs/.local/.postgres' and fill in your local values.
+# ------------------------------------------------------------------------------
+
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=stayease
+POSTGRES_USER=debug
+POSTGRES_PASSWORD=debug
