@@ -100,6 +100,11 @@
                     <i class="bi bi-check-circle me-1"></i>{% translate "Confirmed:" %} {{ booking_stats.confirmed }}
                   </span>
                 {% endif %}
+                {% if booking_stats.completed %}
+                  <span class="badge bg-secondary px-2 py-1">
+                    <i class="bi bi-door-closed me-1"></i>{% translate "Completed:" %} {{ booking_stats.completed }}
+                  </span>
+                {% endif %}
                 {% if booking_stats.rejected %}
                   <span class="badge bg-secondary px-2 py-1">
                     <i class="bi bi-x-circle me-1"></i>{% translate "Rejected:" %} {{ booking_stats.rejected }}

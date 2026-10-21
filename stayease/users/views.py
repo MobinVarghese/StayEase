@@ -166,6 +166,7 @@ class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
                 status__in=[BookingStatus.APPROVED, BookingStatus.PAYMENT_PENDING],
             ).count(),
             "confirmed": owner_bookings.filter(status=BookingStatus.CONFIRMED).count(),
+            "completed": owner_bookings.filter(status=BookingStatus.COMPLETED).count(),
             "rejected": owner_bookings.filter(status=BookingStatus.REJECTED).count(),
         }
         latest_booking_request = (
@@ -235,6 +236,7 @@ class TenantDashboardView(TenantRequiredMixin, TemplateView):
                 status__in=[BookingStatus.APPROVED, BookingStatus.PAYMENT_PENDING],
             ).count(),
             "confirmed": user_bookings.filter(status=BookingStatus.CONFIRMED).count(),
+            "completed": user_bookings.filter(status=BookingStatus.COMPLETED).count(),
             "rejected": user_bookings.filter(status=BookingStatus.REJECTED).count(),
         }
         latest_booking = (

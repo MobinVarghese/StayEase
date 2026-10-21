@@ -145,6 +145,11 @@
                     <span class="badge bg-secondary">{% translate "Inactive" %}</span>
                   {% elif bed.is_occupied %}
                     <span class="badge bg-warning text-dark">{% translate "Occupied" %}</span>
+                    {% if bed.active_booking %}
+                      <div class="small text-muted mt-1">
+                        <i class="bi bi-person me-1"></i>{{ bed.active_booking.tenant.name|default:bed.active_booking.tenant.email|truncatechars:18 }}
+                      </div>
+                    {% endif %}
                   {% elif bed.is_available %}
                     <span class="badge bg-success">{% translate "Available" %}</span>
                   {% else %}
@@ -160,10 +165,27 @@
                 </td>
                 <td>{{ bed.created_at|date:"d M Y" }}</td>
                 <td>
-                  <a href="{% url 'properties:bed_edit' pg.pk room.pk bed.pk %}"
-                     class="btn btn-sm btn-outline-secondary">{% translate "Edit" %}</a>
-                  <a href="{% url 'properties:bed_delete' pg.pk room.pk bed.pk %}"
-                     class="btn btn-sm btn-outline-danger">{% translate "Delete" %}</a>
+                  <div class="d-flex gap-1 align-items-center">
+                    <a href="{% url 'properties:bed_edit' pg.pk room.pk bed.pk %}"
+                       class="btn btn-sm btn-outline-secondary">{% translate "Edit" %}</a>
+                    {% if bed.is_occupied and bed.active_booking %}
+                      {% if bed.active_booking.status == 'CONFIRMED' %}
+                        <form method="post" action="{% url 'bookings:booking_checkout' pk=bed.active_booking.pk %}" class="d-inline" onsubmit="return confirm('Check out tenant and make this bed available immediately?');">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger" title="{% translate "Check Out Tenant & Mark Available" %}">
+                            <i class="bi bi-box-arrow-right me-1"></i>{% translate "Check Out" %}
+                          </button>
+                        </form>
+                      {% else %}
+                        <a href="{% url 'bookings:booking_detail' pk=bed.active_booking.pk %}"
+                           class="btn btn-sm btn-outline-info" title="{% translate "View Active Booking" %}">
+                          {% translate "Booking" %} #{{ bed.active_booking.pk }}
+                        </a>
+                      {% endif %}
+                    {% endif %}
+                    <a href="{% url 'properties:bed_delete' pg.pk room.pk bed.pk %}"
+                       class="btn btn-sm btn-outline-danger">{% translate "Delete" %}</a>
+                  </div>
                 </td>
               </tr>
             {% endfor %}

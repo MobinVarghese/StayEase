@@ -274,15 +274,13 @@ class TestContactVisibilityServices:
         assert not can_view_booking_contact(booking, None)
         assert get_booking_contact_info(booking, None) is None
 
-    def test_non_confirmed_statuses_hide_contact(self):
+    def test_unapproved_statuses_hide_contact(self):
         owner = UserFactory(role=UserRole.OWNER)
         tenant = UserFactory(role=UserRole.TENANT)
         pg = PGFactory(owner=owner)
 
         for status in [
             BookingStatus.PENDING,
-            BookingStatus.APPROVED,
-            BookingStatus.PAYMENT_PENDING,
             BookingStatus.REJECTED,
         ]:
             bed = BedFactory(room__pg=pg)
@@ -292,7 +290,7 @@ class TestContactVisibilityServices:
             assert get_booking_contact_info(booking, tenant) is None
             assert get_booking_contact_info(booking, owner) is None
 
-    def test_confirmed_status_allows_tenant_and_owner(self):
+    def test_approved_and_confirmed_statuses_allow_tenant_and_owner(self):
         owner = UserFactory(
             role=UserRole.OWNER,
             first_name="Alice",
@@ -306,24 +304,31 @@ class TestContactVisibilityServices:
             phone_number="9123456780",
         )
         pg = PGFactory(owner=owner)
-        bed = BedFactory(room__pg=pg)
-        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.CONFIRMED)
 
-        # Tenant viewing
-        assert can_view_booking_contact(booking, tenant)
-        tenant_contact_info = get_booking_contact_info(booking, tenant)
-        assert tenant_contact_info is not None
-        assert tenant_contact_info["role_label"] == "Owner"
-        assert tenant_contact_info["name"] == "Alice Owner"
-        assert tenant_contact_info["phone_number"] == "9876543210"
+        for status in [
+            BookingStatus.APPROVED,
+            BookingStatus.PAYMENT_PENDING,
+            BookingStatus.CONFIRMED,
+            BookingStatus.COMPLETED,
+        ]:
+            bed = BedFactory(room__pg=pg)
+            booking = BookingFactory(tenant=tenant, bed=bed, status=status)
 
-        # Owner viewing
-        assert can_view_booking_contact(booking, owner)
-        owner_contact_info = get_booking_contact_info(booking, owner)
-        assert owner_contact_info is not None
-        assert owner_contact_info["role_label"] == "Tenant"
-        assert owner_contact_info["name"] == "Bob Tenant"
-        assert owner_contact_info["phone_number"] == "9123456780"
+            # Tenant viewing
+            assert can_view_booking_contact(booking, tenant)
+            tenant_contact_info = get_booking_contact_info(booking, tenant)
+            assert tenant_contact_info is not None
+            assert tenant_contact_info["role_label"] == "Owner"
+            assert tenant_contact_info["name"] == "Alice Owner"
+            assert tenant_contact_info["phone_number"] == "9876543210"
+
+            # Owner viewing
+            assert can_view_booking_contact(booking, owner)
+            owner_contact_info = get_booking_contact_info(booking, owner)
+            assert owner_contact_info is not None
+            assert owner_contact_info["role_label"] == "Tenant"
+            assert owner_contact_info["name"] == "Bob Tenant"
+            assert owner_contact_info["phone_number"] == "9123456780"
 
     def test_unrelated_users_cannot_view_contact(self):
         owner = UserFactory(role=UserRole.OWNER)

@@ -30,6 +30,7 @@ from stayease.bookings.models import BookingStatus
 from stayease.bookings.services import confirm_booking
 from stayease.bookings.services import mark_payment_pending
 from stayease.notifications.services import notify_payment_successful
+from stayease.notifications.services import send_booking_confirmation_email
 from stayease.payments.models import Payment
 from stayease.payments.models import PaymentStatus
 
@@ -179,6 +180,12 @@ def process_dummy_payment(
 
             # Member 5: trigger confirmation notification
             notify_payment_successful(payment.booking)
+
+            # Send booking confirmation email safely after transaction commits
+            confirmed_booking = payment.booking
+            transaction.on_commit(
+                lambda: send_booking_confirmation_email(confirmed_booking)
+            )
         else:
             payment.status = PaymentStatus.FAILED
             payment.save(update_fields=["status", "updated_at"])

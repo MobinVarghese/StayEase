@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from stayease.properties.models import Bed
 from stayease.properties.models import PG
+from stayease.properties.models import Review
 from stayease.properties.models import Room
 from stayease.properties.models import RoomImage
 from stayease.properties.services import validate_bed_capacity
@@ -233,4 +234,33 @@ RoomImageFormSet = forms.inlineformset_factory(
     validate_max=True,
     can_delete=True,
 )
+
+
+class ReviewForm(forms.ModelForm):
+    """Submit a verified review for a completed stay."""
+
+    class Meta:
+        model = Review
+        fields = ["rating", "comment"]
+        widgets = {
+            "rating": forms.Select(
+                choices=[
+                    (5, _("★★★★★ (5 - Excellent)")),
+                    (4, _("★★★★☆ (4 - Very Good)")),
+                    (3, _("★★★☆☆ (3 - Good)")),
+                    (2, _("★★☆☆☆ (2 - Fair)")),
+                    (1, _("★☆☆☆☆ (1 - Poor)")),
+                ],
+                attrs={"class": "form-select", "id": "id_rating"},
+            ),
+            "comment": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": _("Share your experience about the room, cleanliness, amenities, and host..."),
+                    "id": "id_comment",
+                }
+            ),
+        }
+
 

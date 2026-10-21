@@ -243,6 +243,18 @@ EMAIL_BACKEND = env(
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
+# https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
+DEFAULT_FROM_EMAIL = env(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    default="StayEase <noreply@stayease.in>",
+)
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+
+# Canonical public URL for generating absolute links in emails (verification, bookings)
+# Read from STAYEASE_PUBLIC_URL (falling back to legacy SITE_URL or http://localhost:8000)
+_raw_public_url = env("STAYEASE_PUBLIC_URL", default=env("SITE_URL", default="http://localhost:8000"))
+STAYEASE_PUBLIC_URL = _raw_public_url.strip().rstrip("/")
+SITE_URL = STAYEASE_PUBLIC_URL
 
 # ADMIN
 # ------------------------------------------------------------------------------

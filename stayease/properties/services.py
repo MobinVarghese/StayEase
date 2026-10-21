@@ -8,6 +8,7 @@ without duplicating logic.
 
 from __future__ import annotations
 
+from typing import Any
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import ValidationError
@@ -126,3 +127,85 @@ def can_hard_delete_bed(bed: Bed) -> bool:
     from stayease.bookings.models import Booking
 
     return not Booking.objects.filter(bed=bed).exists()
+
+
+def create_review(
+    *,
+    booking: Any,
+    tenant: Any,
+    rating: int,
+    comment: str,
+) -> Any:
+    """
+    Create a verified review for a completed booking.
+
+    Raises
+    ------
+    PermissionDenied
+        If tenant is not the booking's tenant or not a TENANT role.
+    ValidationError
+        If booking is not COMPLETED, if a review already exists for this booking,
+        or if rating is outside 1–5.
+    """
+    from django.core.exceptions import PermissionDenied
+    from stayease.bookings.models import BookingStatus
+    from stayease.properties.models import Review
+    from stayease.users.models import UserRole
+
+    if getattr(tenant, "role", None) != UserRole.TENANT:
+        raise PermissionDenied(_("Only tenants can submit reviews."))
+
+    if booking.tenant != tenant:
+        raise PermissionDenied(_("You can only review your own bookings."))
+
+    if booking.status != BookingStatus.COMPLETED:
+        raise ValidationError(
+            _("You can only review accommodations after completing your stay (checked out)."),
+            code="stay_not_completed",
+        )
+
+    if hasattr(booking, "review") or Review.objects.filter(booking=booking).exists():
+        raise ValidationError(
+            _("You have already submitted a review for this stay."),
+            code="duplicate_review",
+        )
+
+    if not (1 <= rating <= 5):
+        raise ValidationError(
+            _("Rating must be between 1 and 5 stars."),
+            code="invalid_rating",
+        )
+
+    clean_comment = comment.strip()
+    if not clean_comment:
+        raise ValidationError(
+            _("Please provide written feedback for your review."),
+            code="empty_comment",
+        )
+
+    review = Review(
+        booking=booking,
+        room=booking.bed.room,
+        tenant=tenant,
+        rating=rating,
+        comment=clean_comment,
+    )
+    review.full_clean()
+    review.save()
+    return review
+
+
+def get_homepage_reviews(limit: int = 6):
+    """
+    Return recent, verified reviews for display on the homepage.
+    Optimised with select_related to avoid N+1 queries.
+    """
+    from stayease.bookings.models import BookingStatus
+    from stayease.properties.models import Review
+
+    return (
+        Review.objects.filter(booking__status=BookingStatus.COMPLETED)
+        .select_related("tenant", "room__pg", "booking")
+        .order_by("-created_at")[:limit]
+    )
+

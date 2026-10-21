@@ -284,7 +284,7 @@ class RoomDetailView(OwnerRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
-        ctx["beds"] = self.object.beds.order_by("label")
+        ctx["beds"] = self.object.beds.prefetch_related("bookings__tenant").order_by("label")
         ctx["can_hard_delete"] = can_hard_delete_room(self.object)
         ctx["active_bed_count"] = self.object.beds.filter(is_active=True).count()
         ctx["images"] = self.object.images.all()
@@ -516,6 +516,7 @@ class BedUpdateView(OwnerRequiredMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["pg"] = self.pg
         ctx["room"] = self.room
+        ctx["bed"] = self.object
         ctx["page_title"] = _("Edit Bed")
         ctx["submit_label"] = _("Save Changes")
         return ctx

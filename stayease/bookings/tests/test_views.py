@@ -200,7 +200,7 @@ class TestBookingDetailView:
 
         assert "9876543210" not in content
         assert "Call Owner" not in content
-        assert "Contact details will be available after confirmation." in content
+        assert "Contact details will be available once the owner approves your booking request." in content
 
     def test_tenant_cannot_see_owner_phone_for_rejected_booking(self, client):
         owner = UserFactory(role=UserRole.OWNER, phone_number="9876543210")
@@ -216,6 +216,29 @@ class TestBookingDetailView:
 
         assert "9876543210" not in content
         assert "Call Owner" not in content
+
+    def test_tenant_can_see_owner_phone_for_approved_booking(self, client):
+        """After owner approves the request and before payment, phone number becomes visible."""
+        owner = UserFactory(
+            role=UserRole.OWNER,
+            first_name="Christopher",
+            last_name="Nolan",
+            phone_number="9876543210",
+        )
+        tenant = UserFactory(role=UserRole.TENANT, phone_number="9123456780")
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.APPROVED)
+
+        _login(client, tenant)
+        resp = client.get(reverse("bookings:booking_detail", kwargs={"pk": booking.pk}))
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+
+        assert "9876543210" in content
+        assert "Christopher" in content
+        assert "Call Owner" in content
+        assert 'href="tel:9876543210"' in content
 
     def test_tenant_can_see_owner_phone_for_confirmed_booking(self, client):
         owner = UserFactory(
@@ -258,7 +281,7 @@ class TestBookingDetailView:
 
         assert "9123456780" not in content
         assert "Call Tenant" not in content
-        assert "Tenant contact details will be available after confirmation." in content
+        assert "Tenant contact details will be available once the booking request is approved." in content
 
     def test_owner_cannot_see_tenant_phone_for_rejected_booking(self, client):
         owner = UserFactory(role=UserRole.OWNER, phone_number="9876543210")
@@ -274,6 +297,29 @@ class TestBookingDetailView:
 
         assert "9123456780" not in content
         assert "Call Tenant" not in content
+
+    def test_owner_can_see_tenant_phone_for_approved_booking(self, client):
+        """Owner can see tenant contact info as soon as booking is APPROVED, before payment."""
+        owner = UserFactory(role=UserRole.OWNER, phone_number="9876543210")
+        tenant = UserFactory(
+            role=UserRole.TENANT,
+            first_name="Mobin",
+            last_name="Varghese",
+            phone_number="9123456780",
+        )
+        pg = PGFactory(owner=owner)
+        bed = BedFactory(room__pg=pg)
+        booking = BookingFactory(tenant=tenant, bed=bed, status=BookingStatus.APPROVED)
+
+        _login(client, owner)
+        resp = client.get(reverse("bookings:booking_detail", kwargs={"pk": booking.pk}))
+        assert resp.status_code == 200
+        content = resp.content.decode("utf-8")
+
+        assert "9123456780" in content
+        assert "Mobin Varghese" in content
+        assert "Call Tenant" in content
+        assert 'href="tel:9123456780"' in content
 
     def test_owner_can_see_tenant_phone_for_confirmed_booking(self, client):
         owner = UserFactory(role=UserRole.OWNER, phone_number="9876543210")

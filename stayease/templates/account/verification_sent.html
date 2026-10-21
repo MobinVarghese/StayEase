@@ -1,0 +1,52 @@
+{% extends "account/base_entrance.html" %}
+{% load i18n static %}
+{% load allauth account %}
+
+{% block head_title %}
+  {% trans "Verify Your Email — StayEase" %}
+{% endblock head_title %}
+
+{% block auth_col_class %}col-lg-6 col-xl-5{% endblock auth_col_class %}
+
+{% block content %}
+<div class="auth-card-wrapper">
+  <div class="auth-card text-center">
+    <div class="auth-card-header mb-4">
+      <div class="auth-logo-badge mb-3 text-primary" style="font-size: 2.5rem;">
+        <i class="bi bi-envelope-check-fill"></i>
+      </div>
+      <h2 class="auth-title">{% trans "Check Your Email" %}</h2>
+      <p class="auth-subtitle text-muted">
+        {% trans "We have sent a verification link to your email address." %}
+      </p>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-center mb-4 py-3 px-3 rounded-3 text-start" role="alert">
+      <i class="bi bi-info-circle-fill fs-4 me-3 flex-shrink-0 text-info"></i>
+      <div>
+        <p class="mb-1 fw-semibold">{% trans "Almost there!" %}</p>
+        <p class="mb-0 small">
+          {% trans "Please click the link inside the email to verify your address and activate your StayEase account." %}
+        </p>
+      </div>
+    </div>
+
+    <div class="card border-0 bg-dark-subtle p-3 mb-4 rounded-3 text-start">
+      <h6 class="fw-bold mb-2 text-secondary">
+        <i class="bi bi-lightbulb-fill me-1 text-warning"></i>{% trans "Didn't receive the email?" %}
+      </h6>
+      <ul class="small text-muted mb-0 ps-3">
+        <li>{% trans "Check your spam or promotions folder." %}</li>
+        <li>{% trans "Allow a minute or two for delivery." %}</li>
+        <li>{% trans "The verification link expires in 3 days." %}</li>
+      </ul>
+    </div>
+
+    <div class="d-grid gap-2">
+      <a href="{% url 'account_login' %}" class="btn btn-primary py-2 fw-semibold">
+        <i class="bi bi-box-arrow-in-right me-1"></i>{% trans "Return to Sign In" %}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock content %}

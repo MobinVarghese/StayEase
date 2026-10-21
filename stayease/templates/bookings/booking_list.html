@@ -39,6 +39,8 @@
                     <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
                   {% elif booking.status == "CONFIRMED" %}
                     <span class="badge bg-success">{{ booking.get_status_display }}</span>
+                  {% elif booking.status == "COMPLETED" %}
+                    <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
                   {% elif booking.status == "REJECTED" %}
                     <span class="badge bg-danger">{{ booking.get_status_display }}</span>
                   {% else %}
@@ -47,10 +49,24 @@
                 </td>
                 <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
                 <td>
-                  <a href="{% url 'bookings:booking_detail' pk=booking.pk %}"
-                     class="btn btn-sm btn-outline-primary">
-                    {% translate "View" %}
-                  </a>
+                  <div class="d-flex gap-1 align-items-center">
+                    <a href="{% url 'bookings:booking_detail' pk=booking.pk %}"
+                       class="btn btn-sm btn-outline-primary">
+                      {% translate "View" %}
+                    </a>
+                    {% if booking.status == "COMPLETED" %}
+                      {% if booking.review %}
+                        <span class="badge bg-light text-dark border">
+                          <i class="bi bi-star-fill text-warning"></i> {{ booking.review.rating }}/5
+                        </span>
+                      {% else %}
+                        <a href="{% url 'bookings:booking_detail' pk=booking.pk %}#review-card"
+                           class="btn btn-sm btn-outline-warning">
+                          <i class="bi bi-star"></i> {% translate "Review" %}
+                        </a>
+                      {% endif %}
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
             {% endfor %}

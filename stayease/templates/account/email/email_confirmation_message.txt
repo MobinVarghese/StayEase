@@ -1,0 +1,15 @@
+{% load i18n %}{% autoescape off %}{% blocktrans with site_name="StayEase" %}Hello from {{ site_name }}!{% endblocktrans %}
+
+{% blocktrans %}You're receiving this email because someone used this email address to create an account on StayEase.{% endblocktrans %}
+
+{% blocktrans %}To verify your email address, please click the link below:{% endblocktrans %}
+
+{{ activate_url }}
+
+{% blocktrans %}This link will expire in 3 days.{% endblocktrans %}
+
+{% blocktrans %}If you did not create an account on StayEase, you can safely ignore this email.{% endblocktrans %}
+
+{% blocktrans with site_name="StayEase" %}Thank you,
+The {{ site_name }} Team{% endblocktrans %}
+{% endautoescape %}

@@ -10,12 +10,20 @@ Business logic ownership: Member 5
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
+from django.conf import settings
+from django.core.cache import cache
+from django.core.mail import EmailMultiAlternatives
 from django.db.models import QuerySet
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from stayease.notifications.models import Notification
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from stayease.bookings.models import Booking
@@ -136,6 +144,142 @@ def notify_payment_successful(booking: Booking) -> Notification:
     )
 
 
+def notify_checkout_completed(booking: Booking) -> Notification:
+    """
+    Notify the tenant that their stay has been completed and they are checked out.
+
+    Called after ``checkout_booking()`` succeeds.
+    """
+    message = (
+        f"You have been successfully checked out of {booking.bed.label} in "
+        f"Room {booking.bed.room.room_number} at "
+        f"{booking.bed.room.pg.name}. You can now leave a review of your stay!"
+    )
+    return create_notification(
+        recipient=booking.tenant,
+        message=message,
+        booking=booking,
+    )
+
+
+def send_booking_confirmation_email(booking: Booking) -> bool:
+    """
+    Send a confirmation email to the tenant after their booking is confirmed.
+
+    Validates that:
+    1. The booking status is CONFIRMED.
+    2. The payment has succeeded.
+    3. Duplicate sends are prevented via atomic cache lock.
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    from stayease.bookings.models import Booking as BookingModel
+    from stayease.bookings.models import BookingStatus
+    from stayease.payments.models import PaymentStatus
+
+    # Reload booking to ensure fresh database state and pre-fetch relations
+    try:
+        fresh_booking = (
+            BookingModel.objects.select_related(
+                "tenant",
+                "bed__room__pg__owner",
+                "payment",
+            ).get(pk=booking.pk)
+        )
+    except BookingModel.DoesNotExist:
+        logger.error(
+            "Booking %s not found when attempting to send confirmation email.",
+            getattr(booking, "pk", None),
+        )
+        return False
+
+    # 1. State validation: booking must be CONFIRMED
+    if fresh_booking.status != BookingStatus.CONFIRMED:
+        logger.warning(
+            "Refusing to send confirmation email for booking %s: status is '%s', expected CONFIRMED.",
+            fresh_booking.pk,
+            fresh_booking.status,
+        )
+        return False
+
+    # 2. Payment validation: payment must be SUCCESS
+    payment = getattr(fresh_booking, "payment", None)
+    if payment and payment.status != PaymentStatus.SUCCESS:
+        logger.warning(
+            "Refusing to send confirmation email for booking %s: payment status is '%s', expected SUCCESS.",
+            fresh_booking.pk,
+            payment.status,
+        )
+        return False
+
+    # 3. Duplicate prevention: atomic cache key
+    lock_key = f"booking_confirmation_email_sent_{fresh_booking.pk}"
+    if not cache.add(lock_key, True, timeout=60 * 60 * 24 * 30):
+        logger.info(
+            "Booking confirmation email already sent for booking %s. Skipping duplicate.",
+            fresh_booking.pk,
+        )
+        return False
+
+    # 4. Context preparation
+    tenant = fresh_booking.tenant
+    pg = fresh_booking.bed.room.pg
+    owner = pg.owner
+
+    site_url = getattr(settings, "STAYEASE_PUBLIC_URL", getattr(settings, "SITE_URL", "http://localhost:8000")).rstrip("/")
+    booking_detail_path = reverse("bookings:booking_detail", kwargs={"pk": fresh_booking.pk})
+    booking_url = f"{site_url}{booking_detail_path}"
+
+    tenant_name = tenant.name or tenant.first_name or tenant.email
+    owner_name = owner.name or owner.first_name or owner.email
+    bed_rent = getattr(fresh_booking.bed, "rent_per_month", "")
+    payment_amount = payment.amount if payment else bed_rent
+    transaction_ref = getattr(payment, "transaction_ref", "")
+
+    context = {
+        "booking": fresh_booking,
+        "tenant_name": tenant_name,
+        "pg": pg,
+        "owner_name": owner_name,
+        "owner_phone": getattr(owner, "phone_number", ""),
+        "owner_email": owner.email,
+        "payment_amount": payment_amount,
+        "transaction_ref": transaction_ref,
+        "booking_url": booking_url,
+    }
+
+    # 5. Render email templates
+    subject_raw = render_to_string(
+        "bookings/emails/booking_confirmation_subject.txt", context
+    )
+    subject = " ".join(subject_raw.splitlines()).strip()
+    text_content = render_to_string(
+        "bookings/emails/booking_confirmation_message.txt", context
+    )
+    html_content = render_to_string(
+        "bookings/emails/booking_confirmation_message.html", context
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "StayEase <noreply@stayease.in>")
+
+    # 6. Send email
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=[tenant.email],
+    )
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
+
+    logger.info(
+        "Booking confirmation email sent to %s for booking %s.",
+        tenant.email,
+        fresh_booking.pk,
+    )
+    return True
+
+
 # ======================================================================
 # Query helpers
 # ======================================================================
@@ -177,7 +321,7 @@ def mark_notification_read(notification: Notification, user: User) -> Notificati
     PermissionError
         If *user* is not the notification's recipient.
     """
-    if notification.recipient_id != user.pk:
+    if notification.recipient != user:
         raise PermissionError(
             _("You do not have permission to modify this notification.")
         )

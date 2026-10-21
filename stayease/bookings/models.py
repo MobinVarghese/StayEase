@@ -17,7 +17,8 @@ class BookingStatus(models.TextChoices):
            ├──> REJECTED
            └──> APPROVED
                   └──> PAYMENT_PENDING
-                          └──> CONFIRMED
+                           └──> CONFIRMED
+                                   └──> COMPLETED
     """
 
     PENDING = "PENDING", _("Pending")
@@ -25,6 +26,7 @@ class BookingStatus(models.TextChoices):
     PAYMENT_PENDING = "PAYMENT_PENDING", _("Payment Pending")
     REJECTED = "REJECTED", _("Rejected")
     CONFIRMED = "CONFIRMED", _("Confirmed")
+    COMPLETED = "COMPLETED", _("Completed")
 
 
 # Statuses that count as "active" — a bed with any booking in one of
@@ -43,9 +45,10 @@ BOOKING_TRANSITIONS: dict[str, set[str]] = {
     "PENDING": {"APPROVED", "REJECTED"},
     "APPROVED": {"PAYMENT_PENDING"},
     "PAYMENT_PENDING": {"CONFIRMED"},
+    "CONFIRMED": {"COMPLETED"},
     # Terminal states — no further transitions.
     "REJECTED": set(),
-    "CONFIRMED": set(),
+    "COMPLETED": set(),
 }
 
 
@@ -93,6 +96,7 @@ class Booking(models.Model):
     approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
     rejected_at = models.DateTimeField(_("rejected at"), null=True, blank=True)
     confirmed_at = models.DateTimeField(_("confirmed at"), null=True, blank=True)
+    checked_out_at = models.DateTimeField(_("checked out at"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Booking")
@@ -140,9 +144,22 @@ class Booking(models.Model):
         """Shortcut to the PG through bed → room → pg."""
         return self.bed.room.pg
 
+    @property
+    def is_completed(self) -> bool:
+        """Return True if this booking has been completed (tenant checked out)."""
+        return self.status == BookingStatus.COMPLETED
+
+    @property
+    def can_be_reviewed(self) -> bool:
+        """Return True if this booking is completed and hasn't been reviewed yet."""
+        if not self.is_completed:
+            return False
+        return not hasattr(self, "review")
+
     def can_view_contact(self, user) -> bool:
         """Return True if *user* is authorized to view contact details for this booking."""
         from stayease.bookings.services import can_view_booking_contact
 
         return can_view_booking_contact(self, user)
+
 

@@ -30,6 +30,8 @@
           <span class="badge bg-secondary fs-6">{{ booking.get_status_display }}</span>
         {% elif booking.status == "CONFIRMED" %}
           <span class="badge bg-success fs-6">{{ booking.get_status_display }}</span>
+        {% elif booking.status == "COMPLETED" %}
+          <span class="badge bg-secondary fs-6">{{ booking.get_status_display }}</span>
         {% elif booking.status == "REJECTED" %}
           <span class="badge bg-danger fs-6">{{ booking.get_status_display }}</span>
         {% endif %}
@@ -84,6 +86,12 @@
                 <td>{{ booking.confirmed_at|date:"d M Y H:i" }}</td>
               </tr>
             {% endif %}
+            {% if booking.checked_out_at %}
+              <tr>
+                <th scope="row">{% translate "Checked Out At" %}</th>
+                <td>{{ booking.checked_out_at|date:"d M Y H:i" }}</td>
+              </tr>
+            {% endif %}
             <tr>
               <th scope="row">{% translate "Last Updated" %}</th>
               <td>{{ booking.updated_at|date:"d M Y H:i" }}</td>
@@ -109,6 +117,18 @@
           </div>
         {% endif %}
 
+        {# Owner check out button for CONFIRMED bookings #}
+        {% if can_checkout %}
+          <div class="mt-3">
+            <form method="post" action="{% url 'bookings:booking_checkout' pk=booking.pk %}" onsubmit="return confirm('Are you sure you want to mark this booking as checked out? The bed will become available for new tenants.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger" id="btn-checkout-booking">
+                <i class="bi bi-box-arrow-right me-1"></i>{% translate "Check Out Tenant" %}
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
         {# Tenant action buttons — only for the tenant on APPROVED bookings #}
         {% if request.user == booking.tenant and booking.status == "APPROVED" %}
           <div class="d-flex gap-2 mt-3">
@@ -121,6 +141,65 @@
 
       </div>
     </div>
+
+    {# Review Section #}
+    {% if has_review %}
+      <div class="card shadow-sm mb-4" id="review-card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-semibold text-dark">
+            <i class="bi bi-star-fill text-warning me-2"></i>{% translate "Your Verified Review" %}
+          </h5>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+            <i class="bi bi-shield-check me-1"></i>{% translate "Verified Resident" %}
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="text-warning fs-5">
+              {% for i in "12345"|make_list %}
+                {% if forloop.counter <= review.rating %}
+                  <i class="bi bi-star-fill"></i>
+                {% else %}
+                  <i class="bi bi-star text-muted"></i>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <span class="fw-bold fs-6 text-dark">{{ review.rating }}/5</span>
+            <span class="text-muted small ms-2">{{ review.created_at|date:"d M Y" }}</span>
+          </div>
+          {% if review.comment %}
+            <p class="text-muted mb-0 fst-italic">"{{ review.comment }}"</p>
+          {% endif %}
+        </div>
+      </div>
+    {% elif can_review %}
+      <div class="card shadow-sm mb-4 border-warning" id="review-card">
+        <div class="card-header bg-warning bg-opacity-10 py-3">
+          <h5 class="mb-0 fw-semibold text-dark">
+            <i class="bi bi-star me-2 text-warning"></i>{% translate "How was your stay?" %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            {% translate "Your stay has completed. Help future tenants by rating and reviewing your experience in this room." %}
+          </p>
+          <form method="post" action="{% url 'bookings:booking_review' pk=booking.pk %}">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="id_rating" class="form-label fw-medium">{% translate "Rating" %}</label>
+              {{ review_form.rating }}
+            </div>
+            <div class="mb-3">
+              <label for="id_comment" class="form-label fw-medium">{% translate "Review Comments" %}</label>
+              {{ review_form.comment }}
+            </div>
+            <button type="submit" class="btn btn-warning fw-semibold" id="btn-submit-review">
+              <i class="bi bi-send me-1"></i>{% translate "Submit Review" %}
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
 
     {# Contact Details Section #}
     <div class="card shadow-sm mb-4" id="booking-contact-section">
@@ -180,15 +259,15 @@
             <div>
               <div class="fw-medium text-dark" id="contact-notice-text">
                 {% if request.user == booking.tenant %}
-                  {% translate "Contact details will be available after confirmation." %}
+                  {% translate "Contact details will be available once the owner approves your booking request." %}
                 {% elif booking.bed.room.pg.owner == request.user %}
-                  {% translate "Tenant contact details will be available after confirmation." %}
+                  {% translate "Tenant contact details will be available once the booking request is approved." %}
                 {% else %}
-                  {% translate "Contact details are available only to confirmed booking participants." %}
+                  {% translate "Contact details are available only to authorized booking participants after approval." %}
                 {% endif %}
               </div>
               <div class="small text-muted">
-                {% translate "Phone numbers are protected and shared only between tenant and owner once the reservation is fully confirmed." %}
+                {% translate "Phone numbers are protected and shared between tenant and owner once the booking request is approved." %}
               </div>
             </div>
           </div>

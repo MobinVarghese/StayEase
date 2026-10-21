@@ -3,6 +3,8 @@ from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -384,6 +386,18 @@ class Bed(models.Model):
         return self.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).exists()  # type: ignore[attr-defined]
 
     @property
+    def active_booking(self):
+        """Return the current active booking on this bed, if any."""
+        from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
+
+        if hasattr(self, "_prefetched_objects_cache") and "bookings" in self._prefetched_objects_cache:
+            for b in self.bookings.all():  # type: ignore[attr-defined]
+                if b.status in ACTIVE_BOOKING_STATUSES:
+                    return b
+            return None
+        return self.bookings.filter(status__in=ACTIVE_BOOKING_STATUSES).select_related("tenant").first()  # type: ignore[attr-defined]
+
+    @property
     def is_bookable(self) -> bool:
         """Return True if this bed is active, owner-enabled, and not occupied."""
         return self.is_active and self.is_available and not self.is_occupied
@@ -450,4 +464,107 @@ class RoomImage(models.Model):
                 raise ValidationError(
                     _("A maximum of 3 photos can be uploaded for a room."),
                 )
+
+
+class Review(models.Model):
+    """
+    A tenant's rating and review for an accommodation they completed a stay in.
+
+    Requirements:
+    - 1 review per completed booking (enforced via OneToOneField).
+    - Only tenants with a COMPLETED booking may submit.
+    - Rating strictly between 1 and 5.
+    - Privacy-aware display name for public views.
+    """
+
+    booking = models.OneToOneField(
+        "bookings.Booking",
+        on_delete=models.CASCADE,
+        related_name="review",
+        verbose_name=_("booking"),
+        help_text=_("The completed booking this review is associated with."),
+    )
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name=_("room"),
+        help_text=_("The room being reviewed."),
+    )
+    tenant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        verbose_name=_("tenant"),
+        help_text=_("The verified tenant who stayed in the room."),
+    )
+    rating = models.PositiveSmallIntegerField(
+        _("rating"),
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Rating from 1 (lowest) to 5 (highest) stars."),
+    )
+    comment = models.TextField(
+        _("review text"),
+        help_text=_("Tenant feedback about their stay."),
+    )
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Review")
+        verbose_name_plural = _("Reviews")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Review #{self.pk} by {self.tenant} for {self.room} ({self.rating}★)"
+
+    def clean(self):
+        super().clean()
+        if self.rating is not None and not (1 <= self.rating <= 5):
+            raise ValidationError({"rating": _("Rating must be between 1 and 5 stars.")})
+
+        booking = getattr(self, "booking", None)
+        if booking is not None:
+            from stayease.bookings.models import BookingStatus
+
+            if booking.status != BookingStatus.COMPLETED:
+                raise ValidationError(
+                    {"booking": _("Reviews can only be submitted for completed stays.")}
+                )
+
+            tenant = getattr(self, "tenant", None)
+            if tenant is not None and booking.tenant != tenant:
+                raise ValidationError(
+                    {"tenant": _("Only the tenant who stayed can submit a review.")}
+                )
+
+            room = getattr(self, "room", None)
+            if room is not None and booking.bed.room != room:
+                raise ValidationError(
+                    {"room": _("The reviewed room must match the booking's room.")}
+                )
+
+    @property
+    def pg(self) -> PG:
+        return self.room.pg
+
+    @property
+    def tenant_display_name(self) -> str:
+        """
+        Privacy-friendly display name (e.g. 'Rahul S.' or 'Verified Resident').
+        Does not expose email or full private info on public pages.
+        """
+        tenant = getattr(self, "tenant", None)
+        if not tenant:
+            return "Verified Resident"
+        if tenant.first_name and tenant.last_name:
+            return f"{tenant.first_name} {tenant.last_name[0]}."
+        name = tenant.name or ""
+        parts = name.strip().split()
+        if len(parts) > 1:
+            return f"{parts[0]} {parts[-1][0]}."
+        if len(parts) == 1:
+            return parts[0]
+        return "Verified Resident"
+
 

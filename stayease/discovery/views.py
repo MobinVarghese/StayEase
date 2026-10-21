@@ -11,6 +11,7 @@ from __future__ import annotations
 from django.shortcuts import get_object_or_404
 from django.views.generic import DetailView
 from django.views.generic import ListView
+from django.views.generic import TemplateView
 
 from stayease.discovery.forms import PGSearchForm
 from stayease.discovery.services import get_distinct_cities
@@ -77,3 +78,19 @@ class PGDiscoveryDetailView(TenantRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["rooms_data"] = get_rooms_with_availability(self.object)
         return ctx
+
+
+class HomeView(TemplateView):
+    """
+    Homepage view displaying platform highlights and real verified tenant reviews.
+    """
+
+    template_name = "pages/home.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from stayease.properties.services import get_homepage_reviews
+
+        ctx["reviews"] = get_homepage_reviews(limit=6)
+        return ctx
+

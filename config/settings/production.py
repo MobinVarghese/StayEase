@@ -5,12 +5,42 @@ from .base import INSTALLED_APPS
 from .base import REDIS_URL
 from .base import env
 
+from urllib.parse import urlparse
+from django.core.exceptions import ImproperlyConfigured
+
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost"])
+
+# Canonical public URL in production:
+# Must be set explicitly via STAYEASE_PUBLIC_URL environment variable.
+_raw_public_url = env("STAYEASE_PUBLIC_URL", default=env("SITE_URL", default=""))
+if not _raw_public_url:
+    raise ImproperlyConfigured(
+        "STAYEASE_PUBLIC_URL environment variable must be configured in production (e.g. 'https://your-domain.com' or 'http://YOUR_IP:PORT')."
+    )
+
+_parsed = urlparse(_raw_public_url.strip().rstrip("/"))
+if _parsed.scheme not in ("http", "https"):
+    raise ImproperlyConfigured(
+        f"STAYEASE_PUBLIC_URL '{_raw_public_url}' has an invalid scheme. Must start with 'https://' or 'http://'."
+    )
+if not _parsed.netloc:
+    raise ImproperlyConfigured(
+        f"STAYEASE_PUBLIC_URL '{_raw_public_url}' is missing a valid hostname or IP address."
+    )
+
+STAYEASE_PUBLIC_URL = _raw_public_url.strip().rstrip("/")
+SITE_URL = STAYEASE_PUBLIC_URL
+
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=[STAYEASE_PUBLIC_URL] if STAYEASE_PUBLIC_URL.startswith(("http://", "https://")) else [],
+)
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -78,7 +108,7 @@ STORAGES = {
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
 DEFAULT_FROM_EMAIL = env(
     "DJANGO_DEFAULT_FROM_EMAIL",
-    default="StayEase <noreply@localhost>",
+    default="StayEase <noreply@stayease.in>",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#server-email
 SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
@@ -89,21 +119,18 @@ EMAIL_SUBJECT_PREFIX = env(
 )
 ACCOUNT_EMAIL_SUBJECT_PREFIX = EMAIL_SUBJECT_PREFIX
 
+# SMTP configuration (Gmail or other provider)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
 ADMIN_URL = env("DJANGO_ADMIN_URL")
-
-# Anymail
-# ------------------------------------------------------------------------------
-# https://anymail.readthedocs.io/en/stable/installation/#installing-anymail
-INSTALLED_APPS += ["anymail"]
-# https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-# https://anymail.readthedocs.io/en/stable/installation/#anymail-settings-reference
-# https://anymail.readthedocs.io/en/stable/esps
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-ANYMAIL = {}
-
 
 # LOGGING
 # ------------------------------------------------------------------------------

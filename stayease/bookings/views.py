@@ -15,6 +15,7 @@ from stayease.notifications.services import (
     notify_booking_approved,
     notify_booking_rejected,
     notify_booking_requested,
+    notify_checkout_completed,
 )
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
@@ -32,6 +33,7 @@ from stayease.bookings.models import Booking
 from stayease.bookings.models import BookingStatus
 from stayease.bookings.services import approve_booking
 from stayease.bookings.services import can_view_booking_contact
+from stayease.bookings.services import checkout_booking
 from stayease.bookings.services import create_booking_request
 from stayease.bookings.services import get_booking_contact_info
 from stayease.bookings.services import reject_booking
@@ -110,7 +112,7 @@ class TenantBookingListView(TenantRequiredMixin, ListView):
     def get_queryset(self):
         return (
             Booking.objects.filter(tenant=self.request.user)
-            .select_related("bed__room__pg")
+            .select_related("bed__room__pg", "review")
             .order_by("-created_at")
         )
 
@@ -128,7 +130,7 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         return Booking.objects.select_related(
-            "tenant", "bed__room__pg__owner"
+            "tenant", "bed__room__pg__owner", "review"
         )
 
     def get_object(self, queryset=None):
@@ -150,7 +152,64 @@ class BookingDetailView(LoginRequiredMixin, DetailView):
         can_view = can_view_booking_contact(booking, user)
         ctx["can_view_contact"] = can_view
         ctx["contact_info"] = get_booking_contact_info(booking, user)
+
+        # Review state
+        has_review = hasattr(booking, "review")
+        ctx["has_review"] = has_review
+        ctx["review"] = getattr(booking, "review", None)
+        ctx["can_review"] = (
+            user == booking.tenant
+            and booking.status == BookingStatus.COMPLETED
+            and not has_review
+        )
+        if ctx["can_review"]:
+            from stayease.properties.forms import ReviewForm
+            ctx["review_form"] = ReviewForm()
+
+        # Checkout state for owner
+        ctx["can_checkout"] = (
+            user == booking.bed.room.pg.owner
+            and booking.status == BookingStatus.CONFIRMED
+        )
         return ctx
+
+
+class BookingReviewCreateView(TenantRequiredMixin, View):
+    """POST-only: Tenant submits a verified review for a COMPLETED booking."""
+
+    def post(self, request, pk):
+        from stayease.properties.forms import ReviewForm
+        from stayease.properties.services import create_review
+
+        booking = get_object_or_404(
+            Booking.objects.select_related("tenant", "bed__room__pg"),
+            pk=pk,
+        )
+
+        form = ReviewForm(request.POST)
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, str(error))
+            return redirect("bookings:booking_detail", pk=pk)
+
+        try:
+            create_review(
+                booking=booking,
+                tenant=request.user,
+                rating=form.cleaned_data["rating"],
+                comment=form.cleaned_data["comment"],
+            )
+            messages.success(request, _("Thank you! Your review has been submitted successfully."))
+        except PermissionDenied:
+            messages.error(request, _("You do not have permission to review this booking."))
+            return redirect("bookings:booking_list")
+        except ValidationError as exc:
+            for msg in exc.messages:
+                messages.error(request, msg)
+
+        return redirect("bookings:booking_detail", pk=pk)
+
 
 
 
@@ -237,3 +296,35 @@ class BookingRejectView(OwnerRequiredMixin, View):
 
         messages.success(request, _("Booking has been rejected."))
         return redirect("bookings:booking_detail", pk=pk)
+
+
+class BookingCheckoutView(OwnerRequiredMixin, View):
+    """POST-only: Owner checks out a tenant from a CONFIRMED booking."""
+
+    def post(self, request, pk):
+        booking = get_object_or_404(
+            Booking.objects.select_related("bed__room__pg"),
+            pk=pk,
+        )
+        try:
+            checkout_booking(booking=booking, owner=request.user)
+        except PermissionDenied:
+            messages.error(
+                request,
+                _("You do not have permission to manage this booking."),
+            )
+            return redirect("bookings:owner_booking_list")
+        except ValidationError as exc:
+            for msg in exc.messages:
+                messages.error(request, msg)
+            return redirect("bookings:booking_detail", pk=pk)
+
+        # Notify the tenant that their stay is complete and they can review
+        notify_checkout_completed(booking)
+
+        messages.success(
+            request,
+            _("Tenant has been checked out successfully. The bed is now available again for booking."),
+        )
+        return redirect("bookings:booking_detail", pk=pk)
+
