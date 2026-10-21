@@ -12,7 +12,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=mobinvarghese14@gmail.com
-EMAIL_HOST_PASSWORD=ddriyltlwxxtvwzr
+EMAIL_HOST_PASSWORD=use_the_app_password_from_the_owner
 DJANGO_DEFAULT_FROM_EMAIL=StayEase <mobinvarghese14@gmail.com>
 # Public Canonical URL
 # ------------------------------------------------------------------------------
