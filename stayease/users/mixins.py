@@ -64,9 +64,21 @@ class RoleRequiredMixin(LoginRequiredMixin):
 
 
 class TenantRequiredMixin(RoleRequiredMixin):
-    """Only users with role=TENANT may access this view."""
+    """Only users with role=TENANT (and not superusers) may access this view."""
 
     required_role = UserRole.TENANT
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        if (
+            getattr(request.user, "is_superuser", False)
+            or getattr(request.user, "role", None) != self.required_role
+        ):
+            raise PermissionDenied(_MSG_ROLE_DENIED)
+
+        return super(RoleRequiredMixin, self).dispatch(request, *args, **kwargs)
 
 
 class OwnerRequiredMixin(RoleRequiredMixin):

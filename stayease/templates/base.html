@@ -100,7 +100,18 @@
 
             <ul class="navbar-nav ms-auto align-items-lg-center gap-2">
               {% if request.user.is_authenticated %}
-                {% if request.user.is_owner %}
+                {% if request.user.is_admin_user or request.user.is_superuser %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:dashboard_admin' %}">
+                      <i class="bi bi-speedometer2 me-1"></i>{% translate "Admin Dashboard" %}
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin:index' %}">
+                      <i class="bi bi-shield-lock me-1"></i>{% translate "Django Admin" %}
+                    </a>
+                  </li>
+                {% elif request.user.is_owner %}
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'properties:pg_list' %}">
                       <i class="bi bi-building me-1"></i>{% translate "My Properties" %}
@@ -120,17 +131,6 @@
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'users:dashboard_tenant' %}">
                       <i class="bi bi-speedometer2 me-1"></i>{% translate "Dashboard" %}
-                    </a>
-                  </li>
-                {% elif request.user.is_admin_user or request.user.is_superuser %}
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:dashboard_admin' %}">
-                      <i class="bi bi-speedometer2 me-1"></i>{% translate "Admin Dashboard" %}
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link" href="{% url 'admin:index' %}">
-                      <i class="bi bi-shield-lock me-1"></i>{% translate "Django Admin" %}
                     </a>
                   </li>
                 {% endif %}

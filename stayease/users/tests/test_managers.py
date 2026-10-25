@@ -28,6 +28,9 @@ class TestUserManager:
         assert user.is_staff
         assert user.is_superuser
         assert user.username is None
+        assert user.role == "ADMIN"
+        assert user.is_admin_user is True
+        assert user.is_tenant is False
 
     def test_create_superuser_username_ignored(self):
         user = User.objects.create_superuser(
@@ -35,6 +38,7 @@ class TestUserManager:
             password="something-r@nd0m!",  # noqa: S106
         )
         assert user.username is None
+        assert user.role == "ADMIN"
 
 
 @pytest.mark.django_db
@@ -53,3 +57,6 @@ def test_createsuperuser_command():
     assert out.getvalue() == "Superuser created successfully.\n"
     user = User.objects.get(email="henry@example.com")
     assert not user.has_usable_password()
+    assert user.role == "ADMIN"
+    assert user.is_admin_user is True
+    assert user.is_tenant is False

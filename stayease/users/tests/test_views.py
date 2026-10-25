@@ -47,6 +47,24 @@ class TestUserRedirectView:
         view.request = request
         assert view.get_redirect_url() == reverse("users:dashboard_owner")
 
+    def test_get_redirect_url_admin(self, user: User, rf: RequestFactory):
+        view = UserRedirectView()
+        request = rf.get("/fake-url")
+        user.role = "ADMIN"
+        request.user = user
+
+        view.request = request
+        assert view.get_redirect_url() == reverse("users:dashboard_admin")
+
+    def test_get_redirect_url_superuser(self, user: User, rf: RequestFactory):
+        view = UserRedirectView()
+        request = rf.get("/fake-url")
+        user.is_superuser = True
+        request.user = user
+
+        view.request = request
+        assert view.get_redirect_url() == reverse("users:dashboard_admin")
+
 
 class TestUserProfileView:
     def test_authenticated_access_profile_route(self, client, user: User):
@@ -240,6 +258,13 @@ class TestTenantDashboardView:
     def test_owner_forbidden(self, client):
         owner = UserFactory(role="OWNER")
         client.force_login(owner)
+        url = reverse("users:dashboard_tenant")
+        resp = client.get(url)
+        assert resp.status_code == 403
+
+    def test_superuser_forbidden(self, client):
+        admin = UserFactory(role="ADMIN", is_superuser=True)
+        client.force_login(admin)
         url = reverse("users:dashboard_tenant")
         resp = client.get(url)
         assert resp.status_code == 403

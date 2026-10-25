@@ -113,10 +113,10 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
         user = self.request.user
         assert isinstance(user, User)
         # Role-aware routing.
+        if user.is_admin_user or user.is_superuser:
+            return reverse("users:dashboard_admin")
         if user.is_owner:
             return reverse("users:dashboard_owner")
-        if user.is_admin_user:
-            return reverse("users:dashboard_admin")
         # Tenant/default is directed to the tenant dashboard
         return reverse("users:dashboard_tenant")
 

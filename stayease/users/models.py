@@ -74,7 +74,7 @@ class User(AbstractUser):
 
     @property
     def is_tenant(self) -> bool:
-        return self.role == UserRole.TENANT
+        return self.role == UserRole.TENANT and not self.is_superuser
 
     @property
     def is_owner(self) -> bool:
@@ -83,7 +83,7 @@ class User(AbstractUser):
     @property
     def is_admin_user(self) -> bool:
         """Named `is_admin_user` to avoid shadowing Django's admin helpers."""
-        return self.role == UserRole.ADMIN
+        return self.role == UserRole.ADMIN or self.is_superuser
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.
