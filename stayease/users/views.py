@@ -26,6 +26,7 @@ from django.views.generic import UpdateView
 from stayease.bookings.models import ACTIVE_BOOKING_STATUSES
 from stayease.bookings.models import Booking
 from stayease.bookings.models import BookingStatus
+from stayease.discovery.services import get_distinct_cities
 from stayease.notifications.services import get_unread_count
 from stayease.properties.models import Bed
 from stayease.properties.models import PG
@@ -190,6 +191,10 @@ class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
             .order_by("pg__name", "room_number")
         )
 
+        # 5. Platform PGs and cities for discovery/search
+        total_active_pg_count = PG.objects.filter(is_active=True).count()
+        distinct_cities = get_distinct_cities()
+
         context.update(
             {
                 "total_properties_count": total_properties_count,
@@ -200,6 +205,9 @@ class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
                 "latest_booking_request": latest_booking_request,
                 "unread_notification_count": unread_notifications,
                 "owner_rooms": owner_rooms,
+                "owner_pgs": owner_pgs,
+                "total_active_pg_count": total_active_pg_count,
+                "distinct_cities": distinct_cities,
             },
         )
         return context

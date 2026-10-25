@@ -748,3 +748,212 @@ body {
 }
 
 
+/* ==========================================================================
+   Room Occupation Summary — Owner Dashboard
+   ========================================================================== */
+
+.occupation-summary-card {
+  overflow: hidden;
+}
+
+.occupation-select {
+  min-width: 220px;
+  border-radius: 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.45rem 2rem 0.45rem 0.85rem;
+  transition: var(--transition-smooth);
+  background-color: #f8fafc;
+}
+
+.occupation-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  background-color: #fff;
+}
+
+.occupation-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.occupation-pg-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--primary-gradient);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  flex-shrink: 0;
+}
+
+.occupation-pg-header {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Accordion overrides */
+.occupation-accordion .accordion-item {
+  border: 1px solid #e9ecef;
+  border-radius: 0.85rem !important;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.occupation-accordion .accordion-button {
+  font-size: 0.95rem;
+  padding: 1rem 1.25rem;
+  background-color: #fafbfd;
+  border-radius: 0 !important;
+}
+
+.occupation-accordion .accordion-button:not(.collapsed) {
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+  color: var(--dark-slate);
+  box-shadow: none;
+}
+
+.occupation-accordion .accordion-button:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+/* Bed sections inside accordion */
+.occupation-bed-section {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0;
+}
+
+.occupation-bed-section:last-child {
+  border-bottom: none;
+}
+
+.occupation-bed-header {
+  padding: 0.85rem 1.25rem;
+  background-color: #fafbfd;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.occupation-no-records {
+  padding: 0.85rem 1.25rem 0.85rem 2.5rem;
+}
+
+/* Timeline */
+.occupation-timeline {
+  position: relative;
+  padding: 0.75rem 1.25rem 0.75rem 1.5rem;
+}
+
+.occupation-timeline-item {
+  position: relative;
+  padding: 0.75rem 0 0.75rem 2rem;
+  border-left: 2px solid #e2e8f0;
+  margin-left: 0.5rem;
+}
+
+.occupation-timeline-item:last-child {
+  border-left-color: transparent;
+}
+
+.occupation-dot {
+  position: absolute;
+  left: -7px;
+  top: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 1.5px currentColor;
+}
+
+.occupation-dot-active {
+  background-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 0 1.5px #10b981, 0 0 8px rgba(16, 185, 129, 0.35);
+}
+
+.occupation-dot-completed {
+  background-color: #94a3b8;
+  color: #94a3b8;
+}
+
+.occupation-timeline-content {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  transition: var(--transition-smooth);
+}
+
+.occupation-timeline-content:hover {
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Status badges */
+.occupation-status-active {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.occupation-status-completed {
+  background-color: rgba(100, 116, 139, 0.08) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+/* Date items */
+.occupation-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.occupation-date-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.occupation-date-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.occupation-date-value {
+  color: var(--dark-slate);
+  font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+  .occupation-select {
+    min-width: 100%;
+  }
+
+  .occupation-dates {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .occupation-timeline-content {
+    padding: 0.7rem 0.8rem;
+  }
+}
