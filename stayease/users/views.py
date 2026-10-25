@@ -194,7 +194,6 @@ class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
         # 5. Platform PGs and cities for discovery/search
         total_active_pg_count = PG.objects.filter(is_active=True).count()
         distinct_cities = get_distinct_cities()
-
         context.update(
             {
                 "total_properties_count": total_properties_count,
@@ -564,5 +563,4 @@ class UserChangePasswordView(LoginRequiredMixin, FormView):
 
 change_password = UserChangePasswordView.as_view()
 user_change_password_view = change_password
-
 
