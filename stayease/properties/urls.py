@@ -66,4 +66,12 @@ urlpatterns = [
         views.BedDeleteView.as_view(),
         name="bed_delete",
     ),
+    # ------------------------------------------------------------------
+    # Occupation Summary (AJAX endpoint for Owner Dashboard)
+    # ------------------------------------------------------------------
+    path(
+        "<int:pg_pk>/occupation-summary/",
+        views.OccupationSummaryView.as_view(),
+        name="occupation_summary",
+    ),
 ]

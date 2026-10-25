@@ -10,12 +10,18 @@ The ownership chain is:  Owner → PG → Room → Bed
 Nested resources always verify the full chain back to the authenticated owner.
 """
 
+# ---------------------------------------------------------------------------
+# NOTE: OccupationSummaryView (at the bottom of this file) powers the
+# "Room Occupation Summary" AJAX endpoint used by the owner dashboard.
+# ---------------------------------------------------------------------------
+
 from __future__ import annotations
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -565,3 +571,106 @@ class BedDeleteView(OwnerRequiredMixin, DeleteView):
         ctx["room"] = self.room
         ctx["can_hard_delete"] = can_hard_delete_bed(self.object)
         return ctx
+
+
+# ===========================================================================
+# Room Occupation Summary (AJAX endpoint for Owner Dashboard)
+# ===========================================================================
+
+
+class OccupationSummaryView(OwnerRequiredMixin, View):
+    """
+    Return a JSON summary of room occupation history for a specific PG.
+
+    For every room in the PG, returns each bed's booking timeline:
+    - tenant name
+    - confirmed_at  (when the booking was confirmed)
+    - checked_out_at (when the owner marked the tenant as checked out)
+    - booking status
+
+    Only bookings that reached CONFIRMED or COMPLETED status are included
+    (i.e. bookings that actually resulted in a tenant occupying a bed).
+    """
+
+    def get(self, request, pg_pk):
+        from stayease.bookings.models import Booking
+        from stayease.bookings.models import BookingStatus
+
+        pg = get_object_or_404(PG, pk=pg_pk)
+        if pg.owner != request.user:
+            return JsonResponse({"error": "Permission denied."}, status=403)
+
+        # Fetch all confirmed / completed bookings for this PG
+        bookings = (
+            Booking.objects.filter(
+                bed__room__pg=pg,
+                status__in=[BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+            )
+            .select_related("tenant", "bed__room")
+            .order_by("bed__room__room_number", "bed__label", "-confirmed_at")
+        )
+
+        # Organize by room → bed → list of occupations
+        rooms_data = {}
+        for booking in bookings:
+            room = booking.bed.room
+            room_key = room.pk
+
+            if room_key not in rooms_data:
+                rooms_data[room_key] = {
+                    "room_number": room.room_number,
+                    "room_type": room.room_type or "",
+                    "beds": {},
+                }
+
+            bed_key = booking.bed.pk
+            if bed_key not in rooms_data[room_key]["beds"]:
+                rooms_data[room_key]["beds"][bed_key] = {
+                    "label": booking.bed.label,
+                    "rent_per_month": str(booking.bed.rent_per_month),
+                    "occupations": [],
+                }
+
+            tenant = booking.tenant
+            tenant_name = tenant.name or tenant.email
+
+            rooms_data[room_key]["beds"][bed_key]["occupations"].append(
+                {
+                    "booking_id": booking.pk,
+                    "tenant_name": tenant_name,
+                    "status": booking.get_status_display(),
+                    "status_code": booking.status,
+                    "confirmed_at": (
+                        booking.confirmed_at.strftime("%d %b %Y, %I:%M %p")
+                        if booking.confirmed_at
+                        else None
+                    ),
+                    "checked_out_at": (
+                        booking.checked_out_at.strftime("%d %b %Y, %I:%M %p")
+                        if booking.checked_out_at
+                        else None
+                    ),
+                },
+            )
+
+        # Convert to a serializable list
+        result = []
+        for room_pk, room_data in rooms_data.items():
+            beds_list = []
+            for bed_pk, bed_data in room_data["beds"].items():
+                beds_list.append(bed_data)
+            result.append(
+                {
+                    "room_number": room_data["room_number"],
+                    "room_type": room_data["room_type"],
+                    "beds": beds_list,
+                }
+            )
+
+        return JsonResponse(
+            {
+                "pg_name": pg.name,
+                "pg_city": pg.city,
+                "rooms": result,
+            }
+        )

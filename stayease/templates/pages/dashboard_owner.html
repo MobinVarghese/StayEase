@@ -16,6 +16,11 @@
           <span class="badge bg-success ms-1">{% translate "Owner" %}</span>
         </p>
       </div>
+      <div class="col-auto d-flex gap-2">
+        <a href="{% url 'discovery:pg_list' %}" class="btn btn-outline-primary btn-sm fw-semibold" id="btn-owner-search-pgs">
+          <i class="bi bi-search me-1"></i>{% translate "Search & Browse All PGs" %}
+        </a>
+      </div>
     </div>
 
     <div class="row g-4">
@@ -211,6 +216,66 @@
       </div>
     </div>
 
+    <!-- Search & Explore Available PGs Card -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0 rounded-3">
+          <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="p-2 bg-primary bg-opacity-10 text-primary rounded-2">
+                  <i class="bi bi-search fs-5"></i>
+                </span>
+                <div>
+                  <h5 class="card-title fw-bold mb-0">{% translate "Search & Explore Available PGs" %}</h5>
+                  <small class="text-muted">{% translate "Search and view active PG accommodations and bed availability across cities" %}</small>
+                </div>
+              </div>
+              <a href="{% url 'discovery:pg_list' %}" class="btn btn-sm btn-outline-primary">
+                {% translate "Browse All PGs" %} ({{ total_active_pg_count }}) &rarr;
+              </a>
+            </div>
+
+            <form method="get" action="{% url 'discovery:pg_list' %}" id="owner-pg-search-form" class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text bg-white text-muted border-end-0">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input type="text"
+                         name="q"
+                         class="form-control border-start-0 ps-0"
+                         placeholder="{% translate 'Search by PG name, description, amenities...' %}"
+                         aria-label="{% translate 'Search query' %}"
+                         id="owner-search-input">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select name="city" class="form-select" id="owner-city-select" aria-label="{% translate 'Filter by city' %}">
+                  <option value="">{% translate "All Cities" %}</option>
+                  {% for city in distinct_cities %}
+                    <option value="{{ city }}">{{ city }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <div class="form-check pt-1">
+                  <input class="form-check-input" type="checkbox" name="available_only" value="1" id="owner-avail-check" checked>
+                  <label class="form-check-label small text-muted" for="owner-avail-check">
+                    {% translate "Available only" %}
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100" id="btn-owner-submit-search">
+                  <i class="bi bi-search me-1"></i>{% translate "Search" %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Room Availability & Occupancy Overview -->
     <div class="row mt-4">
       <div class="col-12">
@@ -306,5 +371,234 @@
         </div>
       </div>
     </div>
+
+    {# ================================================================= #}
+    {# Room Occupation Summary — Check-In / Check-Out Timeline            #}
+    {# ================================================================= #}
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0 rounded-3 occupation-summary-card">
+          <div class="card-header bg-white py-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+              <h5 class="card-title fw-bold mb-0">
+                <i class="bi bi-calendar2-range me-2 text-primary"></i>{% translate "Room Occupation Summary" %}
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                <label for="occupation-pg-select" class="form-label mb-0 fw-semibold text-muted small text-nowrap">
+                  {% translate "Select Property:" %}
+                </label>
+                <select id="occupation-pg-select" class="form-select form-select-sm occupation-select">
+                  <option value="" selected disabled>{% translate "— Choose a PG —" %}</option>
+                  {% for pg in owner_pgs %}
+                    <option value="{{ pg.pk }}">{{ pg.name }} ({{ pg.city }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="card-body" id="occupation-summary-body">
+            {# Default empty state #}
+            <div id="occupation-empty-state" class="text-center py-5">
+              <div class="occupation-empty-icon mb-3">
+                <i class="bi bi-clipboard2-data"></i>
+              </div>
+              <h6 class="text-muted fw-semibold mb-1">{% translate "Select a Property Above" %}</h6>
+              <p class="text-muted small mb-0">
+                {% translate "Choose one of your PG properties from the dropdown to view a dated summary of room occupations — when tenants checked in and when they were checked out." %}
+              </p>
+            </div>
+            {# Loading state (hidden by default) #}
+            <div id="occupation-loading" class="text-center py-5 d-none">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">{% translate "Loading…" %}</span>
+              </div>
+              <p class="text-muted small mt-2 mb-0">{% translate "Fetching occupation history…" %}</p>
+            </div>
+            {# Error state (hidden by default) #}
+            <div id="occupation-error" class="text-center py-5 d-none">
+              <i class="bi bi-exclamation-triangle-fill text-danger fs-2 d-block mb-2"></i>
+              <p class="text-muted small mb-0" id="occupation-error-msg"></p>
+            </div>
+            {# Results container (hidden by default) #}
+            <div id="occupation-results" class="d-none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock content %}
+
+{% block inline_javascript %}
+<script>
+(function() {
+  const pgSelect = document.getElementById('occupation-pg-select');
+  const emptyState = document.getElementById('occupation-empty-state');
+  const loadingState = document.getElementById('occupation-loading');
+  const errorState = document.getElementById('occupation-error');
+  const errorMsg = document.getElementById('occupation-error-msg');
+  const resultsContainer = document.getElementById('occupation-results');
+
+  if (!pgSelect) return;
+
+  pgSelect.addEventListener('change', function() {
+    const pgPk = this.value;
+    if (!pgPk) return;
+
+    // Show loading
+    emptyState.classList.add('d-none');
+    errorState.classList.add('d-none');
+    resultsContainer.classList.add('d-none');
+    loadingState.classList.remove('d-none');
+
+    fetch(`/properties/${pgPk}/occupation-summary/`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to load data');
+      return response.json();
+    })
+    .then(data => {
+      loadingState.classList.add('d-none');
+      renderOccupationSummary(data);
+    })
+    .catch(err => {
+      loadingState.classList.add('d-none');
+      errorMsg.textContent = err.message || 'An unexpected error occurred.';
+      errorState.classList.remove('d-none');
+    });
+  });
+
+  function renderOccupationSummary(data) {
+    const rooms = data.rooms || [];
+
+    if (rooms.length === 0) {
+      resultsContainer.innerHTML = `
+        <div class="text-center py-5">
+          <div class="occupation-empty-icon mb-3">
+            <i class="bi bi-journal-x"></i>
+          </div>
+          <h6 class="text-muted fw-semibold mb-1">No Occupation Records</h6>
+          <p class="text-muted small mb-0">
+            No confirmed or completed bookings found for <strong>${escHtml(data.pg_name)}</strong>.
+            Occupation history will appear here once tenants have confirmed bookings.
+          </p>
+        </div>`;
+      resultsContainer.classList.remove('d-none');
+      return;
+    }
+
+    // Header
+    let html = `
+      <div class="occupation-pg-header mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="occupation-pg-badge">
+            <i class="bi bi-building"></i>
+          </span>
+          <div>
+            <h5 class="fw-bold mb-0">${escHtml(data.pg_name)}</h5>
+            <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>${escHtml(data.pg_city)}</span>
+          </div>
+        </div>
+      </div>`;
+
+    // Rooms accordion
+    html += `<div class="accordion occupation-accordion" id="occupationAccordion">`;
+
+    rooms.forEach((room, roomIdx) => {
+      const roomId = `occRoom${roomIdx}`;
+      const totalOccupations = room.beds.reduce((sum, bed) => sum + bed.occupations.length, 0);
+      const isFirst = roomIdx === 0;
+
+      html += `
+        <div class="accordion-item occupation-accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button ${isFirst ? '' : 'collapsed'}" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#${roomId}"
+                    aria-expanded="${isFirst ? 'true' : 'false'}">
+              <span class="d-flex align-items-center gap-2 flex-wrap">
+                <i class="bi bi-door-open text-primary"></i>
+                <strong>Room ${escHtml(room.room_number)}</strong>
+                ${room.room_type ? `<span class="badge bg-info bg-opacity-10 text-info border border-info-subtle">${escHtml(room.room_type)}</span>` : ''}
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">
+                  ${room.beds.length} bed${room.beds.length !== 1 ? 's' : ''} · ${totalOccupations} record${totalOccupations !== 1 ? 's' : ''}
+                </span>
+              </span>
+            </button>
+          </h2>
+          <div id="${roomId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}"
+               data-bs-parent="#occupationAccordion">
+            <div class="accordion-body p-0">`;
+
+      room.beds.forEach(bed => {
+        html += `
+              <div class="occupation-bed-section">
+                <div class="occupation-bed-header">
+                  <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-lamp text-secondary"></i>
+                    <strong>${escHtml(bed.label)}</strong>
+                    <span class="text-muted small">₹${escHtml(bed.rent_per_month)}/mo</span>
+                  </span>
+                </div>`;
+
+        if (bed.occupations.length === 0) {
+          html += `
+                <div class="occupation-no-records">
+                  <span class="text-muted small"><i class="bi bi-dash-circle me-1"></i>No occupation records for this bed</span>
+                </div>`;
+        } else {
+          html += `<div class="occupation-timeline">`;
+          bed.occupations.forEach(occ => {
+            const isActive = occ.status_code === 'CONFIRMED';
+            const statusClass = isActive ? 'occupation-status-active' : 'occupation-status-completed';
+            const statusIcon = isActive ? 'bi-person-fill-check' : 'bi-person-fill-dash';
+            const dotClass = isActive ? 'occupation-dot-active' : 'occupation-dot-completed';
+
+            html += `
+              <div class="occupation-timeline-item">
+                <div class="${dotClass} occupation-dot"></div>
+                <div class="occupation-timeline-content">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="fw-semibold">${escHtml(occ.tenant_name)}</span>
+                    <span class="badge ${statusClass}">
+                      <i class="bi ${statusIcon} me-1"></i>${escHtml(occ.status)}
+                    </span>
+                  </div>
+                  <div class="occupation-dates">
+                    <div class="occupation-date-item">
+                      <i class="bi bi-box-arrow-in-right text-success"></i>
+                      <span class="occupation-date-label">Checked In:</span>
+                      <span class="occupation-date-value">${occ.confirmed_at || '<em class="text-muted">—</em>'}</span>
+                    </div>
+                    <div class="occupation-date-item">
+                      <i class="bi bi-box-arrow-right text-danger"></i>
+                      <span class="occupation-date-label">Checked Out:</span>
+                      <span class="occupation-date-value">${occ.checked_out_at || (isActive ? '<span class="badge bg-success-subtle text-success border border-success-subtle">Currently Residing</span>' : '<em class="text-muted">—</em>')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>`;
+          });
+          html += `</div>`;
+        }
+        html += `</div>`;
+      });
+
+      html += `
+            </div>
+          </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+    resultsContainer.innerHTML = html;
+    resultsContainer.classList.remove('d-none');
+  }
+
+  function escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+})();
+</script>
+{% endblock inline_javascript %}

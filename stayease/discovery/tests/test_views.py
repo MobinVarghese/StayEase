@@ -42,6 +42,10 @@ def _owner():
     return UserFactory(role=UserRole.OWNER, password="testpass123")
 
 
+def _admin():
+    return UserFactory(role=UserRole.ADMIN, password="testpass123")
+
+
 # ======================================================================
 # PGDiscoveryListView
 # ======================================================================
@@ -59,12 +63,23 @@ class TestPGDiscoveryListView:
         assert response.status_code == 302
         assert "login" in response.url or "account" in response.url
 
-    def test_owner_forbidden(self, client):
-        """Owners should get 403 when trying to access tenant discovery."""
+    def test_owner_can_access_and_search(self, client):
+        """Owners can access PG discovery list and search available PGs without 403."""
         owner = _owner()
         _login(client, owner)
-        response = client.get(self.url)
-        assert response.status_code == 403
+        PGFactory(is_active=True, name="Owner Visible PG")
+        response = client.get(self.url, {"q": "Owner Visible"})
+        assert response.status_code == 200
+        assert b"Owner Visible PG" in response.content
+
+    def test_admin_can_access_and_search(self, client):
+        """Admins can access PG discovery list and search available PGs without 403."""
+        admin = _admin()
+        _login(client, admin)
+        PGFactory(is_active=True, name="Admin Visible PG")
+        response = client.get(self.url, {"q": "Admin Visible"})
+        assert response.status_code == 200
+        assert b"Admin Visible PG" in response.content
 
     def test_page_loads_200_for_tenant(self, client):
         tenant = _tenant()
@@ -191,13 +206,23 @@ class TestPGDiscoveryDetailView:
         assert response.status_code == 302
         assert "login" in response.url or "account" in response.url
 
-    def test_owner_forbidden(self, client):
-        """Owners should get 403 when trying to access tenant discovery detail."""
+    def test_owner_can_access_detail(self, client):
+        """Owners can view PG discovery detail without 403."""
         owner = _owner()
         _login(client, owner)
-        pg = PGFactory()
+        pg = PGFactory(name="Owner PG View", is_active=True)
         response = client.get(self._url(pg.pk))
-        assert response.status_code == 403
+        assert response.status_code == 200
+        assert b"Owner PG View" in response.content
+
+    def test_admin_can_access_detail(self, client):
+        """Admins can view PG discovery detail without 403."""
+        admin = _admin()
+        _login(client, admin)
+        pg = PGFactory(name="Admin PG View", is_active=True)
+        response = client.get(self._url(pg.pk))
+        assert response.status_code == 200
+        assert b"Admin PG View" in response.content
 
     def test_page_loads_200_for_tenant(self, client):
         tenant = _tenant()
@@ -314,3 +339,62 @@ class TestPGDiscoveryDetailView:
         BedFactory(room=room, is_available=True, is_active=True)
         response = client.get(self._url(pg.pk))
         assert b"Available" in response.content
+
+    def test_owner_detail_shows_available_badge_not_booking_link(self, client):
+        """Owners viewing PG detail should see Available status without booking link."""
+        owner = _owner()
+        _login(client, owner)
+        pg = PGFactory(is_active=True)
+        room = RoomFactory(pg=pg, capacity=1)
+        bed = BedFactory(room=room, is_available=True, is_active=True)
+        response = client.get(self._url(pg.pk))
+        assert response.status_code == 200
+        booking_url = reverse("bookings:booking_create", kwargs={"bed_pk": bed.pk})
+        assert booking_url.encode() not in response.content
+        assert b"Available" in response.content
+
+    def test_owner_sees_manage_pg_shortcut_on_own_pg(self, client):
+        """When an owner views their own PG, they see a shortcut to manage it."""
+        owner = _owner()
+        _login(client, owner)
+        pg = PGFactory(owner=owner, is_active=True)
+        response = client.get(self._url(pg.pk))
+        assert response.status_code == 200
+        manage_url = reverse("properties:pg_detail", kwargs={"pg_pk": pg.pk})
+        assert manage_url.encode() in response.content
+
+
+# ======================================================================
+# Dashboard Search Integration Tests
+# ======================================================================
+
+
+@pytest.mark.django_db
+class TestDashboardSearchIntegration:
+    """Tests verifying search PG feature in Owner and Admin dashboards."""
+
+    def test_owner_dashboard_has_search_feature(self, client):
+        owner = _owner()
+        _login(client, owner)
+        response = client.get(reverse("users:dashboard_owner"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert reverse("discovery:pg_list") in content
+        assert "owner-pg-search-form" in content
+        assert (
+            "Search &amp; Explore Available PGs" in content
+            or "Search & Explore Available PGs" in content
+        )
+
+    def test_admin_dashboard_has_search_feature(self, client):
+        admin = _admin()
+        _login(client, admin)
+        response = client.get(reverse("users:dashboard_admin"))
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert reverse("discovery:pg_list") in content
+        assert "admin-pg-search-form" in content
+        assert (
+            "Search &amp; Inspect Available PGs" in content
+            or "Search & Inspect Available PGs" in content
+        )

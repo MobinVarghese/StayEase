@@ -18,6 +18,9 @@
       </p>
     </div>
     <div class="col-auto d-flex gap-2">
+      <a href="{% url 'discovery:pg_list' %}" class="btn btn-outline-primary btn-sm fw-semibold" id="btn-admin-search-pgs">
+        <i class="bi bi-search me-1"></i>{% translate "Search & Browse All PGs" %}
+      </a>
       <a href="{% url 'admin:index' %}" class="btn btn-outline-dark btn-sm fw-semibold">
         <i class="bi bi-shield-lock me-1"></i>{% translate "Django Admin" %}
       </a>
@@ -136,6 +139,62 @@
     </div>
   </div>
 
+  <!-- Search & Inspect Available PGs Section -->
+  <div class="card shadow-sm border-0 rounded-3 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="p-2 bg-primary bg-opacity-10 text-primary rounded-2">
+            <i class="bi bi-search fs-5"></i>
+          </span>
+          <div>
+            <h5 class="card-title fw-bold mb-0">{% translate "Search & Inspect Available PGs" %}</h5>
+            <small class="text-muted">{% translate "Search across active platform listings using the PG discovery and availability logic" %}</small>
+          </div>
+        </div>
+        <a href="{% url 'discovery:pg_list' %}" class="btn btn-sm btn-outline-primary">
+          {% translate "Browse All PGs" %} ({{ total_pgs_count }}) &rarr;
+        </a>
+      </div>
+
+      <form method="get" action="{% url 'discovery:pg_list' %}" id="admin-pg-search-form" class="row g-2 align-items-center">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-white text-muted border-end-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text"
+                   name="q"
+                   class="form-control border-start-0 ps-0"
+                   placeholder="{% translate 'Search by PG name, description, amenities...' %}"
+                   aria-label="{% translate 'Search query' %}"
+                   id="admin-search-input">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <input type="text"
+                 name="city"
+                 class="form-control"
+                 placeholder="{% translate 'City (e.g. Bengaluru)' %}"
+                 aria-label="{% translate 'Filter by city' %}"
+                 id="admin-city-input">
+        </div>
+        <div class="col-md-2">
+          <div class="form-check pt-1">
+            <input class="form-check-input" type="checkbox" name="available_only" value="1" id="admin-avail-check">
+            <label class="form-check-label small text-muted" for="admin-avail-check">
+              {% translate "Available only" %}
+            </label>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100" id="btn-admin-submit-search">
+            <i class="bi bi-search me-1"></i>{% translate "Search" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
   <!-- PG Booking Report Section -->
   <div class="card shadow-sm border-0 rounded-3 mb-4">
     <div class="card-header bg-white border-bottom py-3">
@@ -248,6 +307,9 @@
                     {% endif %}
                   </td>
                   <td class="pe-4 text-end">
+                    <a href="{% url 'discovery:pg_detail' pg_pk=pg.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="{% translate 'View Live PG Listing' %}">
+                      <i class="bi bi-eye"></i>
+                    </a>
                     <a href="{% url 'admin:properties_pg_change' pg.pk %}" class="btn btn-sm btn-outline-primary" title="{% translate 'View PG in Admin' %}">
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>

@@ -272,6 +272,15 @@ stayease/media/
 
 .pytest_cache/
 .ipython/
+# Environment files and secrets
 .env
+.env.*
+
+# Keep safe example templates
+!.env.example
+
+# Ignore local configuration by default
 .envs/*
 !.envs/.local/
+.envs/.local/*
+!.envs/.local/*.example
